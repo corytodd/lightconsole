@@ -26,18 +26,56 @@ namespace LightConsole
             var progress = await DialogManager.ShowProgressAsync(this, "Loading...", "Please Wait...");
             progress.SetIndeterminate();
 
-            var result = await initClientAsync();
-            statusLbl.Content = result ? "Connected" : "Error";
+            if (!string.IsNullOrEmpty(Properties.Settings.Default.Gateway))
+            {
+                var result = await initClientAsync(Properties.Settings.Default.Gateway);
+                statusLbl.Content = result ? "Connected" : "Error";
+            }
+            else
+            {
+                statusLbl.Content = "Unconfigured: Gateway required (File->Configure)";                               
+            }
             await progress.CloseAsync();
         }
 
-        private async Task<bool> initClientAsync()
+
+        private void menuQuit_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
+        }
+
+        private void menuConfig_Click(object sender, RoutedEventArgs e)
+        {
+            settingsChild.IsOpen = true;
+        }
+
+
+        private void settingsSaveBtn_Click(object sender, RoutedEventArgs e)
+        {
+            // TODO validate
+            Properties.Settings.Default.Gateway = settingGatewayTxt.Text.ToString();
+            Properties.Settings.Default.OnTop = settingsOnTopToggle.IsChecked.Value;
+
+            // Update TopMost setting now since there is not change event that I can find
+            Topmost = Properties.Settings.Default.OnTop;
+
+            Properties.Settings.Default.Save();
+
+            settingsChild.IsOpen = false;
+        }
+
+        private void settingsCancelBtn_Click(object sender, RoutedEventArgs e)
+        {
+            settingsChild.IsOpen = false;
+        }
+
+        private async Task<bool> initClientAsync(string gateway)
         {
             return await Task.Factory.StartNew(() =>
             {
 
                 // TODO parametize via UI
-                m_lightClient = new TCPConnected("192.168.0.151");
+                m_lightClient = new TCPConnected(gateway);
                 m_lightClient.OnRoomDiscovered += M_lightClient_OnRoomDiscovered;
                 m_lightClient.OnRoomStateChanged += M_lightClient_OnRoomStateChanged;
 
@@ -98,6 +136,5 @@ namespace LightConsole
                 action.Invoke();
             }
         }
-
     }
 }

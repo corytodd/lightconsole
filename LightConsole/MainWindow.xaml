@@ -1,20 +1,57 @@
 ﻿<Controls:MetroWindow x:Class="LightConsole.MainWindow"
         xmlns:Controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
+        xmlns:simpleChildWindow="clr-namespace:MahApps.Metro.SimpleChildWindow;assembly=MahApps.Metro.SimpleChildWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:p="clr-namespace:LightConsole.Properties"
         xmlns:local="clr-namespace:LightConsole"
-        mc:Ignorable="d" Topmost="True"
+        mc:Ignorable="d" Topmost="{Binding Source={x:Static p:Settings.Default}, Path=OnTop, Mode=OneTime}"
+        GlowBrush="{DynamicResource AccentColorBrush}"
         Title="Light Console" Height="350" Width="525" Loaded="Window_Loaded">
     <Grid>
         <DockPanel>
-            <StatusBar DockPanel.Dock="Bottom">
+            <Menu DockPanel.Dock="Top">
+                <MenuItem Header="File">
+                    <MenuItem x:Name="menuConfig" Header="Configure" Click="menuConfig_Click"/>
+                    <Separator/>
+                    <MenuItem x:Name="menuQuit" Header="Quit" Click="menuQuit_Click"/>
+                </MenuItem>
+            </Menu>
+            <StatusBar x:Name="statusbar" DockPanel.Dock="Bottom">
                 <Label Content="Status:"/>
                 <Label x:Name="statusLbl"/>
             </StatusBar>
             <TabControl x:Name="roomTabs" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
             </TabControl>
         </DockPanel>
+        
+        
+        <simpleChildWindow:ChildWindow x:Name="settingsChild"
+                                       CloseByEscape="False"
+                                       HorizontalContentAlignment="Stretch"
+									   VerticalContentAlignment="Stretch"                                       
+                                       IsOpen="False"                                      
+                                       Padding="15"
+                                       Title="Settings">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="1*"/>
+                    <RowDefinition Height="1*"/>
+                    <RowDefinition Height="1*"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="1*"/>
+                </Grid.ColumnDefinitions>
+                <Label Content="Gateway IP" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"></Label>
+                <TextBox x:Name="settingGatewayTxt" Text="{Binding Source={x:Static p:Settings.Default}, Path=Gateway}" Controls:TextBoxHelper.Watermark="IP address" Grid.Column="1" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Center" HorizontalContentAlignment="Center"/>
+                <Label Content="Always on top" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Grid.Row="1"/>
+                <Controls:ToggleSwitch x:Name="settingsOnTopToggle" Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" HorizontalContentAlignment="Center" IsChecked="{Binding Source={x:Static p:Settings.Default}, Path=OnTop}" OnLabel="" OffLabel="" HorizontalAlignment="Center" />
+                <Button x:Name="settingsSaveBtn" Content="Save" Click="settingsSaveBtn_Click" IsDefault="True" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center" Width="75"/>
+                <Button x:Name="settingsCancelBtn" Content="Cancel" Click="settingsCancelBtn_Click" IsCancel="True" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" Width="75"/>
+            </Grid>
+        </simpleChildWindow:ChildWindow>
     </Grid>
 </Controls:MetroWindow>
