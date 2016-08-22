@@ -1,5 +1,8 @@
 ﻿using LightControl;
 using MahApps.Metro.Controls;
+using MahApps.Metro.Controls.Dialogs;
+using System;
+using System.Threading.Tasks;
 using System.Windows;
 
 namespace LightConsole
@@ -15,32 +18,85 @@ namespace LightConsole
         {
             InitializeComponent();
 
-            LoggingFactory.InitializeLogFactory();
+            LoggingFactory.InitializeLogFactory();            
         }
 
-        private void Window_Loaded(object sender, RoutedEventArgs e)
+        private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            // TODO parametize via UI
-            m_lightClient = new TCPConnected("192.168.0.151");
+            var progress = await DialogManager.ShowProgressAsync(this, "Loading...", "Please Wait...");
+            progress.SetIndeterminate();
 
-            m_lightClient.Init();
+            var result = await initClientAsync();
+            statusLbl.Content = result ? "Connected" : "Error";
+            await progress.CloseAsync();
         }
 
-        private void button_Click(object sender, RoutedEventArgs e)
+        private async Task<bool> initClientAsync()
         {
-            m_lightClient.GetState();
-            var room = "Office";
-
-            var state = m_lightClient.GetRoomStateByName(room);
-            if(state.On)
+            return await Task.Factory.StartNew(() =>
             {
-                m_lightClient.TurnOffRoomByName(room);
+
+                // TODO parametize via UI
+                m_lightClient = new TCPConnected("192.168.0.151");
+                m_lightClient.OnRoomDiscovered += M_lightClient_OnRoomDiscovered;
+                m_lightClient.OnRoomStateChanged += M_lightClient_OnRoomStateChanged;
+
+                return m_lightClient.Init().Result;
+            });
+        }
+
+        private void M_lightClient_OnRoomStateChanged(object sender, RoomEventArgs e)
+        {
+            // @todo
+            M_lightClient_OnRoomDiscovered(sender, e);
+        }
+
+        private void M_lightClient_OnRoomDiscovered(object sender, RoomEventArgs e)
+        {
+            DoOnUIThread(() =>
+            {
+                MetroTabItem tab = new MetroTabItem();
+                tab.Header = e.Room.name;
+
+                RoomControl rc = new RoomControl(e.Room);
+                rc.OnModifyRequested += Rc_OnModifyRequested;                                
+                tab.Content = rc;
+
+                roomTabs.Items.Add(tab);
+            });
+        }
+
+        private async void Rc_OnModifyRequested(object sender, ModifyLightArgs e)
+        {
+            await Task.Factory.StartNew(() =>
+            {
+                if (e.On)
+                {
+                    m_lightClient.TurnOnRoomWithLevelByName(e.Name, e.Level);
+                }
+                else
+                {
+                    m_lightClient.TurnOffRoomByName(e.Name);
+                }
+            });
+        }
+
+
+        /// <summary>
+        /// Runs the specified action on the UI thread. Please be sure 
+        /// to mark your delegates as async before passing them to this function.
+        /// </summary>
+        /// <param name="action"></param>
+        private void DoOnUIThread(Action action)
+        {
+            if (!Dispatcher.CheckAccess())
+            {
+                Dispatcher.Invoke(action);
             }
             else
             {
-                m_lightClient.TurnOnRoomWithLevelByName(room, 60);
+                action.Invoke();
             }
-
         }
 
     }
