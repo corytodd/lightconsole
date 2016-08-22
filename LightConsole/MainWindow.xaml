@@ -5,7 +5,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:LightConsole"
-        mc:Ignorable="d"
+        mc:Ignorable="d" Topmost="True"
         Title="Light Console" Height="350" Width="525" Loaded="Window_Loaded">
     <Grid>
         <DockPanel>

@@ -16,7 +16,7 @@
             <RowDefinition Height="3*"/>
         </Grid.RowDefinitions>
 
-        <Controls:ToggleSwitch x:Name="stateToggle" Grid.Row="1" OnLabel="On" OffLabel="Off" VerticalAlignment="Center" HorizontalContentAlignment="Center" Checked="stateToggle_Checked" />
+        <Controls:ToggleSwitch x:Name="stateToggle" Grid.Row="1" OnLabel="On" OffLabel="Off" VerticalAlignment="Center" HorizontalContentAlignment="Center" Checked="stateToggle_Checked" Unchecked="stateToggle_Unchecked" />
 
         <Grid Grid.Row="1" Grid.Column="1">
             <Grid.RowDefinitions>

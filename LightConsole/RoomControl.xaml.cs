@@ -59,6 +59,11 @@ namespace LightConsole
             ModifyLight(new ModifyLightArgs(m_name, CurrentMinValue, stateToggle.IsChecked.Value));
         }
 
+        private void stateToggle_Unchecked(object sender, System.Windows.RoutedEventArgs e)
+        {
+            ModifyLight(new ModifyLightArgs(m_name, CurrentMinValue, stateToggle.IsChecked.Value));
+        }
+
         protected virtual void ModifyLight(ModifyLightArgs e)
         {
             EventHandler<ModifyLightArgs> handler = OnModifyRequested;
@@ -78,5 +83,6 @@ namespace LightConsole
             }
         }
         #endregion
+
     }
 }
