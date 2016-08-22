@@ -59,6 +59,29 @@ namespace LightControl
         public string poweravg { get; set; }
         public string energy { get; set; }
         public Device device { get; set; }
+
+        /// <summary>
+        /// Objects are equal only if rid and name are the same
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        public override bool Equals(object obj)
+        {
+            if (obj == null || GetType() != obj.GetType())
+                return false;
+
+            Room p = (Room)obj;
+            return (rid == p.rid) && (name.Equals(p.name));
+        }
+
+        /// <summary>
+        /// Use default hash code for now
+        /// </summary>
+        /// <returns></returns>
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
     }
 
     public class Gip

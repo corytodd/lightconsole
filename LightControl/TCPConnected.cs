@@ -7,6 +7,7 @@ using System.IO;
 using System.Xml.Linq;
 using System.Xml;
 using ColorMine.ColorSpaces;
+using System.Threading.Tasks;
 
 namespace LightControl
 {
@@ -27,7 +28,10 @@ namespace LightControl
         private List<Room> m_rooms;
         #endregion
 
-
+        /// <summary>
+        /// Constructoir
+        /// </summary>
+        /// <param name="host">Resolvable host name or IP address</param>
         public TCPConnected(string host)
         {
             if (string.IsNullOrEmpty(host))
@@ -46,21 +50,44 @@ namespace LightControl
         public string Host { get; private set; }
         #endregion
 
+        #region Events
+        /// <summary>
+        /// Raised when a new room is discovered
+        /// </summary>
+        public event EventHandler<RoomEventArgs> OnRoomDiscovered;
+
+        /// <summary>
+        /// Raised when a room's state changes
+        /// </summary>
+        public event EventHandler<RoomEventArgs> OnRoomStateChanged;
+        #endregion
 
         #region Methods
         /// <summary>
         /// Initialize the client's authorization tokens
         /// </summary>
-        public void Init()
+        public async Task<bool>Init()
         {
-            LoadToken();
+            if(await LoadTokenAsync())
+            {
+                UpdateState();
+            }
+            return m_hasToken;
         }
 
+        /// <summary>
+        /// Returns a copy of the the current room's states
+        /// </summary>
+        /// <returns></returns>
+        public IList<Room> GetRooms()
+        {
+            return new List<Room>(m_rooms);
+        }
 
         /// <summary>
         /// Updates the current state of all known devices connected to the gateway.
         /// </summary>
-        public void GetState()
+        public void UpdateState()
         {
             var StateString = string.Format(GetStateTemplate, m_token);
             var payload = string.Format(RequestUrlEncodeStr, Commands.GWRBatch, Uri.EscapeUriString(StateString));
@@ -86,15 +113,34 @@ namespace LightControl
                 }
                 else
                 {
-                    m_rooms = gwo.gwrcmds.gwrcmd.gdata.gip.room;
+                    var rooms = gwo.gwrcmds.gwrcmd.gdata.gip.room;
 
-                    foreach (Room room in m_rooms)
+                    // See if these are new rooms or state changes
+                    foreach(Room room in rooms)
                     {
                         m_logger.Log("Found room: {0}", room.name);
+
+                        var prev = m_rooms.Where(x => x.name.Equals(room.name)).FirstOrDefault();
+
+                        // new room
+                        if(prev == null)
+                        {
+                            m_rooms.Add(room);
+                            RoomDiscovered(new RoomEventArgs(room));
+                        } 
+                        else
+                        {
+                            if(!prev.Equals(room))
+                            {
+                                // Replace previous state
+                                var index = m_rooms.IndexOf(prev);
+                                m_rooms[index] = room;
+
+                                RoomStateChanged(new RoomEventArgs(room));
+                            }
+                        }
                     }
                 }
-
-
             }
 
         }
@@ -109,7 +155,7 @@ namespace LightControl
             var DeviceCommand = string.Format(DeviceSendTemplate, m_token, deviceId, 1);
             var payload = string.Format(RequestUrlEncodeStr, Commands.DeviceSendCommand, Uri.EscapeUriString(DeviceCommand));
 
-            this.GWRequest(payload);
+            GWRequest(payload);
         }
 
 
@@ -122,7 +168,7 @@ namespace LightControl
             var DeviceCommand = string.Format(DeviceSendTemplate, m_token, deviceId, 0);
             var payload = string.Format(RequestUrlEncodeStr, Commands.DeviceSendCommand, Uri.EscapeUriString(DeviceCommand));
 
-            this.GWRequest(payload);
+            GWRequest(payload);
         }
 
 
@@ -136,7 +182,7 @@ namespace LightControl
             var DeviceLevelCommand = string.Format(DeviceSendLevelTempalte, m_token, deviceId, level);
             var payload = string.Format(RequestUrlEncodeStr, Commands.DeviceSendCommand, Uri.EscapeUriString(DeviceLevelCommand));
 
-            this.GWRequest(payload);
+            GWRequest(payload);
         }
 
 
@@ -155,6 +201,7 @@ namespace LightControl
 
             var rgb = new Rgb { R = r, G = b, B = b };
             var hsv = rgb.To<Hsv>();
+
             return Convert.ToInt32(hsv.H * 182);
         }
 
@@ -251,7 +298,7 @@ namespace LightControl
         {
             var roomId = GetRIDByName(name);
 
-            this.TurnOffRoom(roomId);
+            TurnOffRoom(roomId);
         }
 
 
@@ -282,6 +329,26 @@ namespace LightControl
         }
         #endregion
 
+        #region Delegates
+        protected virtual void RoomDiscovered(RoomEventArgs e)
+        {
+            EventHandler<RoomEventArgs> handler = OnRoomDiscovered;
+            if (handler != null)
+            {
+                handler(this, e);
+            }
+        }
+
+        protected virtual void RoomStateChanged(RoomEventArgs e)
+        {
+            EventHandler<RoomEventArgs> handler = OnRoomStateChanged;
+            if (handler != null)
+            {
+                handler(this, e);
+            }
+        }
+        #endregion
+
 
         #region Private
         /// <summary>
@@ -293,10 +360,11 @@ namespace LightControl
         {
             if (!m_hasToken)
             {
-                //cb(1);
+                // @todo this really should be an error
+                return "Missing auth token";
             }
 
-            return postGWRXMLData(Host, payload);
+            return postGWRXMLDataAsync(Host, payload).Result;
         }
 
 
@@ -304,7 +372,7 @@ namespace LightControl
         /// Attempts to obtain an access token from the TCPConnected gateway
         /// </summary>
         /// <returns>bool True on success</returns>
-        private bool SyncGateway()
+        private async Task<bool> SyncGatewayAsync()
         {
             var uuid = Guid.NewGuid();
             var user = uuid;
@@ -313,7 +381,7 @@ namespace LightControl
             var gLogInCommand = string.Format(LogInTemplate, user, pass);
             var payload = string.Format(RequestUrlEncodeStr, Commands.GWRLogin, Uri.EscapeUriString(gLogInCommand));
 
-            var resp = postGWRXMLData(Host, payload);
+            var resp = await postGWRXMLDataAsync(Host, payload);
 
             if (resp.Equals(NotInSyncModeStr))
             {
@@ -345,7 +413,7 @@ namespace LightControl
         /// <summary>
         /// Loads auth token from disk, creates file if not found and requests new token
         /// </summary>
-        private void LoadToken()
+        private async Task<bool> LoadTokenAsync()
         {
             string token = string.Empty;
 
@@ -368,7 +436,7 @@ namespace LightControl
             if (string.IsNullOrEmpty(token))
             {
                 m_logger.Log("No token found, attempting to get token");
-                SyncGateway();
+                m_hasToken = await SyncGatewayAsync();
             }
             else
             {
@@ -376,6 +444,7 @@ namespace LightControl
                 m_token = token;
             }
 
+            return m_hasToken;
         }
 
         /// <summary>
@@ -396,21 +465,23 @@ namespace LightControl
         /// <param name="hostIP"></param>
         /// <param name="requestXml"></param>
         /// <returns></returns>
-        private static string postGWRXMLData(string hostIP, string requestXml)
+        private static async Task<string> postGWRXMLDataAsync(string hostIP, string requestXml)
         {
+            return await Task.Factory.StartNew<string>(() =>
+            {
+                var http = new HttpClient();
+                http.Request.Accept = HttpContentTypes.ApplicationXml;
 
-            var http = new HttpClient();
-            http.Request.Accept = HttpContentTypes.ApplicationXml;
-
-            var url = string.Format("https://{0}/gwr/gop.php", hostIP);
-            m_logger.Log("PostXMLData Req: \n{0}", requestXml);
+                var url = string.Format("https://{0}/gwr/gop.php", hostIP);
+                m_logger.Log("PostXMLData Req: \n{0}", requestXml);
 
 
-            HttpResponse resp = http.Post(url, requestXml, HttpContentTypes.ApplicationXml);
+                HttpResponse resp = http.Post(url, requestXml, HttpContentTypes.ApplicationXml);
 
-            m_logger.Log("PostXMLData Resp: \n{0}", XDocument.Parse(resp.RawText).ToString());
+                m_logger.Log("PostXMLData Resp: \n{0}", XDocument.Parse(resp.RawText).ToString());
 
-            return resp.RawText;
+                return resp.RawText;
+            });
 
         }           
         #endregion
