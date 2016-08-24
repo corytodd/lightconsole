@@ -13,111 +13,154 @@ namespace LightConsole
     public partial class MainWindow : MetroWindow
     {
         private TCPConnected m_lightClient;
+        private ProgressDialogController m_progress;
+        private string m_gateway;
 
         public MainWindow()
         {
             InitializeComponent();
+
+            settingsChild.OnSettingsChanged += SettingsChild_OnSettingsChanged;
+
+            m_gateway = Properties.Settings.Default.Gateway;
 
             LoggingFactory.InitializeLogFactory();            
         }
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            var progress = await DialogManager.ShowProgressAsync(this, "Loading...", "Please Wait...");
-            progress.SetIndeterminate();
-
-            if (!string.IsNullOrEmpty(Properties.Settings.Default.Gateway))
+            if (!string.IsNullOrEmpty(m_gateway))
             {
-                var result = await initClientAsync(Properties.Settings.Default.Gateway);
-                statusLbl.Content = result ? "Connected" : "Error";
+                await InitClientAsync();
             }
             else
             {
-                statusLbl.Content = "Unconfigured: Gateway required (File->Configure)";                               
+                statusLbl.Content = "Unconfigured: Gateway required (File->Configure)";
             }
-            await progress.CloseAsync();
         }
 
 
-        private void menuQuit_Click(object sender, RoutedEventArgs e)
+        /// <summary>
+        /// Configure TCP lighting client. Returns true if the initialization
+        /// was successful. Possible failure states:
+        /// * Failed to find host
+        /// * Bad token and host is not in sync mode
+        /// </summary>
+        /// <returns>bool success</returns>
+        private async Task<bool> InitClientAsync()
         {
-            Close();
-        }
+            m_progress = await DialogManager.ShowProgressAsync(
+                this,
+                "Loading...",
+                "Please Wait...");
+            m_progress.SetIndeterminate();
 
-        private void menuConfig_Click(object sender, RoutedEventArgs e)
-        {
-            settingsChild.IsOpen = true;
-        }
-
-
-        private void settingsSaveBtn_Click(object sender, RoutedEventArgs e)
-        {
-            // TODO validate
-            Properties.Settings.Default.Gateway = settingGatewayTxt.Text.ToString();
-            Properties.Settings.Default.OnTop = settingsOnTopToggle.IsChecked.Value;
-
-            // Update TopMost setting now since there is not change event that I can find
-            Topmost = Properties.Settings.Default.OnTop;
-
-            Properties.Settings.Default.Save();
-
-            settingsChild.IsOpen = false;
-        }
-
-        private void settingsCancelBtn_Click(object sender, RoutedEventArgs e)
-        {
-            settingsChild.IsOpen = false;
-        }
-
-        private async Task<bool> initClientAsync(string gateway)
-        {
-            return await Task.Factory.StartNew(() =>
+            if (m_lightClient != null)
             {
+                m_lightClient.OnRoomDiscovered -= M_lightClient_OnRoomDiscovered;
+                m_lightClient.OnRoomStateChanged -= M_lightClient_OnRoomStateChanged;
+            }
 
-                // TODO parametize via UI
-                m_lightClient = new TCPConnected(gateway);
+                m_lightClient = new TCPConnected(m_gateway);
                 m_lightClient.OnRoomDiscovered += M_lightClient_OnRoomDiscovered;
                 m_lightClient.OnRoomStateChanged += M_lightClient_OnRoomStateChanged;
 
-                return m_lightClient.Init().Result;
-            });
+            bool connected = false;
+            try
+            {
+                connected = await m_lightClient.InitAsync();
+                statusLbl.Content = string.Format("Connected to {0}", m_gateway);
+            }
+            catch (Exceptions e)
+            {
+                statusLbl.Content = e.Message;
+                await m_progress.CloseAsync();
+            }
+
+
+            return connected;
         }
 
+        #region Event Handlers
         private void M_lightClient_OnRoomStateChanged(object sender, RoomEventArgs e)
         {
-            // @todo
-            M_lightClient_OnRoomDiscovered(sender, e);
+            // @TODO
         }
 
         private void M_lightClient_OnRoomDiscovered(object sender, RoomEventArgs e)
         {
             DoOnUIThread(() =>
             {
-                MetroTabItem tab = new MetroTabItem();
-                tab.Header = e.Room.name;
+                RoomControl control = new RoomControl(e.Room);
+                control.OnModifyRequested += Control_OnModifyRequested;
+                roomTabs.AddControl(control, e.Room.name);
 
-                RoomControl rc = new RoomControl(e.Room);
-                rc.OnModifyRequested += Rc_OnModifyRequested;                                
-                tab.Content = rc;
-
-                roomTabs.Items.Add(tab);
             });
+
+            m_progress.CloseAsync();
         }
 
-        private async void Rc_OnModifyRequested(object sender, ModifyLightArgs e)
+        /// <summary>
+        /// Handle light control changes requests
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void Control_OnModifyRequested(object sender, ModifyLightArgs e)
         {
-            await Task.Factory.StartNew(() =>
-            {
-                if (e.On)
+            Task.Factory.StartNew(() =>
                 {
-                    m_lightClient.TurnOnRoomWithLevelByName(e.Name, e.Level);
-                }
-                else
-                {
-                    m_lightClient.TurnOffRoomByName(e.Name);
-                }
-            });
+                    if (e.On)
+                    {
+                        m_lightClient.TurnOffRoomByName(e.Name);
+                    }
+                    else
+                    {
+                        m_lightClient.TurnOnRoomWithLevelByName(e.Name, e.Level);
+                    }
+                });
         }
+
+        /// <summary>
+        /// Reapply any settings from the settings file
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private async void SettingsChild_OnSettingsChanged(object sender, EventArgs e)
+        {
+            Topmost = Properties.Settings.Default.OnTop;
+
+            if(!string.IsNullOrEmpty(m_gateway) && !m_gateway.Equals(Properties.Settings.Default.Gateway))
+            {
+                m_gateway = Properties.Settings.Default.Gateway;
+                await InitClientAsync();
+            } 
+
+        }
+        #endregion
+
+
+
+        #region Click Listeners
+        /// <summary>
+        /// Terminate application
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void menuQuit_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
+        }
+
+        /// <summary>
+        /// Launch settings window
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void menuConfig_Click(object sender, RoutedEventArgs e)
+        {
+            settingsChild.IsOpen = true;
+        }
+        #endregion
 
 
         /// <summary>
