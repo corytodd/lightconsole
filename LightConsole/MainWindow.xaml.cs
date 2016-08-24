@@ -13,6 +13,7 @@ namespace LightConsole
     public partial class MainWindow : MetroWindow
     {
         private TCPConnected m_lightClient;
+        private ProgressDialogController m_progress;
 
         public MainWindow()
         {
@@ -23,33 +24,101 @@ namespace LightConsole
             LoggingFactory.InitializeLogFactory();            
         }
 
+        private async void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            m_progress = await DialogManager.ShowProgressAsync(
+                this,
+                "Loading...",
+                "Please Wait...");
+            m_progress.SetIndeterminate();
+
+
+            if (!string.IsNullOrEmpty(Properties.Settings.Default.Gateway))
+            {
+                var result = await InitClientAsync(Properties.Settings.Default.Gateway);
+                statusLbl.Content = result ? "Connected" : "Error";
+            }
+            else
+            {
+                statusLbl.Content = "Unconfigured: Gateway required (File->Configure)";
+                await m_progress.CloseAsync();
+            }
+
+
+        }
+
+
+        /// <summary>
+        /// Configure TCP lighting client. Returns true if the initialization
+        /// was successful. Possible failure states:
+        /// * Failed to find host
+        /// * Bad token and host is not in sync mode
+        /// </summary>
+        /// <param name="gateway">URI or IP of gateway</param>
+        /// <returns>bool success</returns>
+        private async Task<bool> InitClientAsync(string gateway)
+        {
+
+            m_lightClient = new TCPConnected(gateway);
+            m_lightClient.OnRoomDiscovered += M_lightClient_OnRoomDiscovered;
+            m_lightClient.OnRoomStateChanged += M_lightClient_OnRoomStateChanged;
+
+            return await m_lightClient.InitAsync();            
+        }
+
+        #region Event Handlers
+        private void M_lightClient_OnRoomStateChanged(object sender, RoomEventArgs e)
+        {
+            // @TODO
+        }
+
+        private void M_lightClient_OnRoomDiscovered(object sender, RoomEventArgs e)
+        {
+            DoOnUIThread(() =>
+            {
+                RoomControl control = new RoomControl(e.Room);
+                control.OnModifyRequested += Control_OnModifyRequested;
+                roomTabs.AddControl(control, e.Room.name);
+
+            });
+
+            m_progress.CloseAsync();
+        }
+
+        /// <summary>
+        /// Handle light control changes requests
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void Control_OnModifyRequested(object sender, ModifyLightArgs e)
+        {
+            Task.Factory.StartNew(() =>
+                {
+                    if (e.On)
+                    {
+                        m_lightClient.TurnOffRoomByName(e.Name);
+                    }
+                    else
+                    {
+                        m_lightClient.TurnOnRoomWithLevelByName(e.Name, e.Level);
+                    }
+                });
+        }
+
         /// <summary>
         /// Reapply any settings from the settings file
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
         private void SettingsChild_OnSettingsChanged(object sender, EventArgs e)
-        {            
+        {
             Topmost = Properties.Settings.Default.OnTop;
         }
+        #endregion
 
-        private async void Window_Loaded(object sender, RoutedEventArgs e)
-        {
-            var progress = await DialogManager.ShowProgressAsync(this, "Loading...", "Please Wait...");
-            progress.SetIndeterminate();
 
-            if (!string.IsNullOrEmpty(Properties.Settings.Default.Gateway))
-            {
-                var result = await initClientAsync(Properties.Settings.Default.Gateway);
-                statusLbl.Content = result ? "Connected" : "Error";
-            }
-            else
-            {
-                statusLbl.Content = "Unconfigured: Gateway required (File->Configure)";                               
-            }
-            await progress.CloseAsync();
-        }
 
+        #region Click Listeners
         /// <summary>
         /// Terminate application
         /// </summary>
@@ -69,64 +138,7 @@ namespace LightConsole
         {
             settingsChild.IsOpen = true;
         }
-
-        /// <summary>
-        /// Configure TCP lighting client. Returns true if the initialization
-        /// was successful. Possible failure states:
-        /// * Failed to find host
-        /// * Bad token and host is not in sync mode
-        /// </summary>
-        /// <param name="gateway">URI or IP of gateway</param>
-        /// <returns>bool success</returns>
-        private async Task<bool> initClientAsync(string gateway)
-        {
-            return await Task.Factory.StartNew(() =>
-            {
-
-                // TODO parametize via UI
-                m_lightClient = new TCPConnected(gateway);
-                m_lightClient.OnRoomDiscovered += M_lightClient_OnRoomDiscovered;
-                m_lightClient.OnRoomStateChanged += M_lightClient_OnRoomStateChanged;
-
-                return m_lightClient.Init().Result;
-            });
-        }
-
-        private void M_lightClient_OnRoomStateChanged(object sender, RoomEventArgs e)
-        {
-            // @todo
-            M_lightClient_OnRoomDiscovered(sender, e);
-        }
-
-        private void M_lightClient_OnRoomDiscovered(object sender, RoomEventArgs e)
-        {
-            DoOnUIThread(() =>
-            {
-                MetroTabItem tab = new MetroTabItem();
-                tab.Header = e.Room.name;
-
-                RoomControl rc = new RoomControl(e.Room);
-                rc.OnModifyRequested += Rc_OnModifyRequested;                                
-                tab.Content = rc;
-
-                roomTabs.Items.Add(tab);
-            });
-        }
-
-        private async void Rc_OnModifyRequested(object sender, ModifyLightArgs e)
-        {
-            await Task.Factory.StartNew(() =>
-            {
-                if (e.On)
-                {
-                    m_lightClient.TurnOnRoomWithLevelByName(e.Name, e.Level);
-                }
-                else
-                {
-                    m_lightClient.TurnOffRoomByName(e.Name);
-                }
-            });
-        }
+        #endregion
 
 
         /// <summary>

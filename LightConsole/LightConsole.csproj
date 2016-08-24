@@ -75,6 +75,9 @@
     <Compile Include="RoomControl.xaml.cs">
       <DependentUpon>RoomControl.xaml</DependentUpon>
     </Compile>
+    <Compile Include="RoomTabControl.xaml.cs">
+      <DependentUpon>RoomTabControl.xaml</DependentUpon>
+    </Compile>
     <Compile Include="SettingChildWindow.xaml.cs">
       <DependentUpon>SettingChildWindow.xaml</DependentUpon>
     </Compile>
@@ -99,6 +102,10 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="RoomControl.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="RoomTabControl.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

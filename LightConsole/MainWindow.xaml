@@ -22,8 +22,10 @@
                 <Label Content="Status:"/>
                 <Label x:Name="statusLbl"/>
             </StatusBar>
-            <TabControl x:Name="roomTabs" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
-            </TabControl>
+
+            <!-- Primary content -->
+            <local:RoomTabControl x:Name="roomTabs"/>
+            
         </DockPanel>
         
         <!-- Instance of Mahapps.Metroc.SimpleChildWindow -->
