@@ -14,6 +14,7 @@ namespace LightConsole
     {
         private TCPConnected m_lightClient;
         private ProgressDialogController m_progress;
+        private string m_gateway;
 
         public MainWindow()
         {
@@ -21,30 +22,21 @@ namespace LightConsole
 
             settingsChild.OnSettingsChanged += SettingsChild_OnSettingsChanged;
 
+            m_gateway = Properties.Settings.Default.Gateway;
+
             LoggingFactory.InitializeLogFactory();            
         }
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            m_progress = await DialogManager.ShowProgressAsync(
-                this,
-                "Loading...",
-                "Please Wait...");
-            m_progress.SetIndeterminate();
-
-
-            if (!string.IsNullOrEmpty(Properties.Settings.Default.Gateway))
+            if (!string.IsNullOrEmpty(m_gateway))
             {
-                var result = await InitClientAsync(Properties.Settings.Default.Gateway);
-                statusLbl.Content = result ? "Connected" : "Error";
+                await InitClientAsync();
             }
             else
             {
                 statusLbl.Content = "Unconfigured: Gateway required (File->Configure)";
-                await m_progress.CloseAsync();
             }
-
-
         }
 
 
@@ -54,16 +46,39 @@ namespace LightConsole
         /// * Failed to find host
         /// * Bad token and host is not in sync mode
         /// </summary>
-        /// <param name="gateway">URI or IP of gateway</param>
         /// <returns>bool success</returns>
-        private async Task<bool> InitClientAsync(string gateway)
+        private async Task<bool> InitClientAsync()
         {
+            m_progress = await DialogManager.ShowProgressAsync(
+                this,
+                "Loading...",
+                "Please Wait...");
+            m_progress.SetIndeterminate();
 
-            m_lightClient = new TCPConnected(gateway);
-            m_lightClient.OnRoomDiscovered += M_lightClient_OnRoomDiscovered;
-            m_lightClient.OnRoomStateChanged += M_lightClient_OnRoomStateChanged;
+            if (m_lightClient != null)
+            {
+                m_lightClient.OnRoomDiscovered -= M_lightClient_OnRoomDiscovered;
+                m_lightClient.OnRoomStateChanged -= M_lightClient_OnRoomStateChanged;
+            }
 
-            return await m_lightClient.InitAsync();            
+                m_lightClient = new TCPConnected(m_gateway);
+                m_lightClient.OnRoomDiscovered += M_lightClient_OnRoomDiscovered;
+                m_lightClient.OnRoomStateChanged += M_lightClient_OnRoomStateChanged;
+
+            bool connected = false;
+            try
+            {
+                connected = await m_lightClient.InitAsync();
+                statusLbl.Content = string.Format("Connected to {0}", m_gateway);
+            }
+            catch (Exceptions e)
+            {
+                statusLbl.Content = e.Message;
+                await m_progress.CloseAsync();
+            }
+
+
+            return connected;
         }
 
         #region Event Handlers
@@ -110,9 +125,16 @@ namespace LightConsole
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void SettingsChild_OnSettingsChanged(object sender, EventArgs e)
+        private async void SettingsChild_OnSettingsChanged(object sender, EventArgs e)
         {
             Topmost = Properties.Settings.Default.OnTop;
+
+            if(!string.IsNullOrEmpty(m_gateway) && !m_gateway.Equals(Properties.Settings.Default.Gateway))
+            {
+                m_gateway = Properties.Settings.Default.Gateway;
+                await InitClientAsync();
+            } 
+
         }
         #endregion
 

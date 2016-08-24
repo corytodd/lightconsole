@@ -1,4 +1,7 @@
-﻿namespace LightControl
+﻿using System;
+using System.IO;
+
+namespace LightControl
 {
     partial class TCPConnected
     {
@@ -27,6 +30,6 @@
         /// <summary>
         /// @todo move to user app data or embedded settings
         /// </summary>
-        static readonly string ConfigPath = "config.json";
+        static readonly string ConfigPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),  "lightconsole_config.json");
     }
 }

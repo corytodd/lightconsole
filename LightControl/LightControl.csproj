@@ -66,6 +66,7 @@
     <Compile Include="ILogger.cs" />
     <Compile Include="Logger.cs" />
     <Compile Include="LoggingFactory.cs" />
+    <Compile Include="Exceptions.cs" />
     <Compile Include="RoomEventArgs.cs" />
     <Compile Include="TCPConnected.cs" />
     <Compile Include="Constants.cs" />

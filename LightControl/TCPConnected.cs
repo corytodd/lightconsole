@@ -25,7 +25,7 @@ namespace LightControl
         #region Fields
         private bool m_hasToken;
         private string m_token;
-        private List<Room> m_rooms;
+        private HashSet<Room> m_rooms;
         #endregion
 
         /// <summary>
@@ -42,7 +42,7 @@ namespace LightControl
             Host = host;
             m_hasToken = false;
             m_token = string.Empty;
-            m_rooms = new List<Room>();
+            m_rooms = new HashSet<Room>();
         }
 
 
@@ -70,11 +70,30 @@ namespace LightControl
         {
             return await Task.Factory.StartNew<bool>(() =>
             {
-                if (LoadToken())
+                if (!LoadToken())
                 {
-                    UpdateState();
+                    return false;
                 }
-                return m_hasToken;
+
+                int retry = 5;
+                while (retry-- > 0)
+                {
+                    try
+                    {
+                        UpdateState();
+                        break;
+                    }
+                    catch (InvalidToken)
+                    {
+                        LoadToken();
+                    }
+                    catch (MalformedGWR)
+                    {
+                        // just try again
+                    }
+                }
+                
+                return true;
             });
         }
 
@@ -85,72 +104,6 @@ namespace LightControl
         public IList<Room> GetRooms()
         {
             return new List<Room>(m_rooms);
-        }
-
-        /// <summary>
-        /// Updates the current state of all known devices connected to the gateway.
-        /// </summary>
-        public void UpdateState()
-        {
-            Task.Factory.StartNew(() =>
-            {
-                var StateString = string.Format(GetStateTemplate, m_token);
-
-                var payload = string.Format(
-                    RequestUrlEncodeStr, 
-                    Commands.GWRBatch, 
-                    Uri.EscapeUriString(StateString));
-
-
-                var result = GWRequest(payload);
-
-                if (result.Equals(PermissedDeniedStr))
-                {
-                    m_logger.Log("Permission denied: Invalid Token");
-                }
-                else
-                {
-                    // NewtonSoft expexts XmlDoc, not LINQ XML
-                    XmlDocument rawXml = new XmlDocument();
-                    rawXml.LoadXml(result);
-
-                    string json = JsonConvert.SerializeXmlNode(rawXml);
-                    GWRObject gwo = JsonConvert.DeserializeObject<GWRObject>(json);
-
-                    if (!gwo.hasRooms())
-                    {
-                        m_logger.Log("GWO Response is malformed: {0}", json.ToString());
-                    }
-                    else
-                    {
-                        var rooms = gwo.gwrcmds.gwrcmd.gdata.gip.room;
-
-                        // See if these are new rooms or state changes
-                        foreach (Room room in rooms)
-                        {
-                            m_logger.Log("Found room: {0}", room.name);
-
-                            var prev = m_rooms.Where(x => x.name.Equals(room.name)).FirstOrDefault();
-
-                            // new room
-                            if (prev == null)
-                            {
-                                m_rooms.Add(room);
-                                RoomDiscovered(new RoomEventArgs(room));
-                            }
-                            else if (!prev.Equals(room))
-                            {
-                                // Replace previous state
-                                var index = m_rooms.IndexOf(prev);
-                                m_rooms[index] = room;
-
-                                RoomStateChanged(new RoomEventArgs(room));
-                            }
-
-                        }
-                    }
-                }
-            });
         }
 
 
@@ -383,6 +336,68 @@ namespace LightControl
 
         #region Private
         /// <summary>
+        /// Updates the current state of all known devices connected to the gateway.
+        /// </summary>
+        private void UpdateState()
+        {
+
+            var StateString = string.Format(GetStateTemplate, m_token);
+
+            var payload = string.Format(
+                RequestUrlEncodeStr,
+                Commands.GWRBatch,
+                Uri.EscapeUriString(StateString));
+
+
+            var result = GWRequest(payload);
+
+            if (result.Equals(PermissedDeniedStr))
+            {
+                m_logger.Log("Permission denied: Invalid Token");
+                throw new InvalidToken();
+            }
+            else
+            {
+                // NewtonSoft expexts XmlDoc, not LINQ XML
+                XmlDocument rawXml = new XmlDocument();
+                rawXml.LoadXml(result);
+
+                string json = JsonConvert.SerializeXmlNode(rawXml);
+                GWRObject gwo = JsonConvert.DeserializeObject<GWRObject>(json);
+
+                if (!gwo.hasRooms())
+                {
+                    m_logger.Log("GWO Response is malformed: {0}", json.ToString());
+                    throw new MalformedGWR();
+                }
+                else
+                {
+                    var rooms = gwo.gwrcmds.gwrcmd.gdata.gip.room;
+
+                    // See if these are new rooms or state changes
+                    foreach (Room room in rooms)
+                    {
+                        m_logger.Log("Found room: {0}", room.name);
+
+                        var prev = m_rooms.Where(x => x.name.Equals(room.name)).FirstOrDefault();
+                        m_rooms.Add(room);
+
+                        // new room
+                        if (prev == null)
+                        {
+                            RoomDiscovered(new RoomEventArgs(room));
+                        }
+                        else if (!prev.Equals(room))
+                        {
+                            RoomStateChanged(new RoomEventArgs(room));
+                        }
+
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         /// Post XML paylod to FGW host
         /// </summary>
         /// <param name="payload">XML string</param>
@@ -403,6 +418,8 @@ namespace LightControl
         /// Attempts to obtain an access token from the TCPConnected gateway
         /// </summary>
         /// <returns>bool True on success</returns>
+        /// <exception cref="Exceptions">Thrown if authorization sync fails due to
+        /// a 404 message from the gateway</exception>
         private bool SyncGateway()
         {
             var uuid = Guid.NewGuid();
@@ -416,8 +433,7 @@ namespace LightControl
 
             if (resp.Equals(NotInSyncModeStr))
             {
-                m_logger.Log("Permission Denied: Gateway is not in Sync mode. Putton on Gateway to Sync");
-                return false;
+                throw new Exceptions();
             }
             else
             {
