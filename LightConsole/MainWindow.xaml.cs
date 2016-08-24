@@ -18,7 +18,19 @@ namespace LightConsole
         {
             InitializeComponent();
 
+            settingsChild.OnSettingsChanged += SettingsChild_OnSettingsChanged;
+
             LoggingFactory.InitializeLogFactory();            
+        }
+
+        /// <summary>
+        /// Reapply any settings from the settings file
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void SettingsChild_OnSettingsChanged(object sender, EventArgs e)
+        {            
+            Topmost = Properties.Settings.Default.OnTop;
         }
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)
@@ -38,37 +50,34 @@ namespace LightConsole
             await progress.CloseAsync();
         }
 
-
+        /// <summary>
+        /// Terminate application
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void menuQuit_Click(object sender, RoutedEventArgs e)
         {
             Close();
         }
 
+        /// <summary>
+        /// Launch settings window
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void menuConfig_Click(object sender, RoutedEventArgs e)
         {
             settingsChild.IsOpen = true;
         }
 
-
-        private void settingsSaveBtn_Click(object sender, RoutedEventArgs e)
-        {
-            // TODO validate
-            Properties.Settings.Default.Gateway = settingGatewayTxt.Text.ToString();
-            Properties.Settings.Default.OnTop = settingsOnTopToggle.IsChecked.Value;
-
-            // Update TopMost setting now since there is not change event that I can find
-            Topmost = Properties.Settings.Default.OnTop;
-
-            Properties.Settings.Default.Save();
-
-            settingsChild.IsOpen = false;
-        }
-
-        private void settingsCancelBtn_Click(object sender, RoutedEventArgs e)
-        {
-            settingsChild.IsOpen = false;
-        }
-
+        /// <summary>
+        /// Configure TCP lighting client. Returns true if the initialization
+        /// was successful. Possible failure states:
+        /// * Failed to find host
+        /// * Bad token and host is not in sync mode
+        /// </summary>
+        /// <param name="gateway">URI or IP of gateway</param>
+        /// <returns>bool success</returns>
         private async Task<bool> initClientAsync(string gateway)
         {
             return await Task.Factory.StartNew(() =>
