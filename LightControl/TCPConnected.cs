@@ -66,13 +66,16 @@ namespace LightControl
         /// <summary>
         /// Initialize the client's authorization tokens
         /// </summary>
-        public async Task<bool>Init()
+        public async Task<bool>InitAsync()
         {
-            if(await LoadTokenAsync())
+            return await Task.Factory.StartNew<bool>(() =>
             {
-                UpdateState();
-            }
-            return m_hasToken;
+                if (LoadToken())
+                {
+                    UpdateState();
+                }
+                return m_hasToken;
+            });
         }
 
         /// <summary>
@@ -89,48 +92,53 @@ namespace LightControl
         /// </summary>
         public void UpdateState()
         {
-            var StateString = string.Format(GetStateTemplate, m_token);
-            var payload = string.Format(RequestUrlEncodeStr, Commands.GWRBatch, Uri.EscapeUriString(StateString));
-
-            var result = GWRequest(payload);
-
-            if (result.Equals(PermissedDeniedStr))
+            Task.Factory.StartNew(() =>
             {
-                m_logger.Log("Permission denied: Invalid Token");
-            }
-            else
-            {
-                // NewtonSoft expexts XmlDoc, not LINQ XML
-                XmlDocument rawXml = new XmlDocument();
-                rawXml.LoadXml(result);
+                var StateString = string.Format(GetStateTemplate, m_token);
 
-                string json = JsonConvert.SerializeXmlNode(rawXml);
-                GWRObject gwo = JsonConvert.DeserializeObject<GWRObject>(json);
+                var payload = string.Format(
+                    RequestUrlEncodeStr, 
+                    Commands.GWRBatch, 
+                    Uri.EscapeUriString(StateString));
 
-                if (!gwo.hasRooms())
+
+                var result = GWRequest(payload);
+
+                if (result.Equals(PermissedDeniedStr))
                 {
-                    m_logger.Log("GWO Response is malformed: {0}", json.ToString());
+                    m_logger.Log("Permission denied: Invalid Token");
                 }
                 else
                 {
-                    var rooms = gwo.gwrcmds.gwrcmd.gdata.gip.room;
+                    // NewtonSoft expexts XmlDoc, not LINQ XML
+                    XmlDocument rawXml = new XmlDocument();
+                    rawXml.LoadXml(result);
 
-                    // See if these are new rooms or state changes
-                    foreach(Room room in rooms)
+                    string json = JsonConvert.SerializeXmlNode(rawXml);
+                    GWRObject gwo = JsonConvert.DeserializeObject<GWRObject>(json);
+
+                    if (!gwo.hasRooms())
                     {
-                        m_logger.Log("Found room: {0}", room.name);
+                        m_logger.Log("GWO Response is malformed: {0}", json.ToString());
+                    }
+                    else
+                    {
+                        var rooms = gwo.gwrcmds.gwrcmd.gdata.gip.room;
 
-                        var prev = m_rooms.Where(x => x.name.Equals(room.name)).FirstOrDefault();
+                        // See if these are new rooms or state changes
+                        foreach (Room room in rooms)
+                        {
+                            m_logger.Log("Found room: {0}", room.name);
 
-                        // new room
-                        if(prev == null)
-                        {
-                            m_rooms.Add(room);
-                            RoomDiscovered(new RoomEventArgs(room));
-                        } 
-                        else
-                        {
-                            if(!prev.Equals(room))
+                            var prev = m_rooms.Where(x => x.name.Equals(room.name)).FirstOrDefault();
+
+                            // new room
+                            if (prev == null)
+                            {
+                                m_rooms.Add(room);
+                                RoomDiscovered(new RoomEventArgs(room));
+                            }
+                            else if (!prev.Equals(room))
                             {
                                 // Replace previous state
                                 var index = m_rooms.IndexOf(prev);
@@ -138,11 +146,11 @@ namespace LightControl
 
                                 RoomStateChanged(new RoomEventArgs(room));
                             }
+
                         }
                     }
                 }
-            }
-
+            });
         }
 
 
@@ -153,7 +161,10 @@ namespace LightControl
         public void TurnOnDevice(string deviceId)
         {
             var DeviceCommand = string.Format(DeviceSendTemplate, m_token, deviceId, 1);
-            var payload = string.Format(RequestUrlEncodeStr, Commands.DeviceSendCommand, Uri.EscapeUriString(DeviceCommand));
+            var payload = string.Format(
+                RequestUrlEncodeStr, 
+                Commands.DeviceSendCommand, 
+                Uri.EscapeUriString(DeviceCommand));
 
             GWRequest(payload);
         }
@@ -166,7 +177,11 @@ namespace LightControl
         public void TurnOffDevice(string deviceId)
         {
             var DeviceCommand = string.Format(DeviceSendTemplate, m_token, deviceId, 0);
-            var payload = string.Format(RequestUrlEncodeStr, Commands.DeviceSendCommand, Uri.EscapeUriString(DeviceCommand));
+
+            var payload = string.Format(
+                RequestUrlEncodeStr, 
+                Commands.DeviceSendCommand,
+                Uri.EscapeUriString(DeviceCommand));
 
             GWRequest(payload);
         }
@@ -180,7 +195,11 @@ namespace LightControl
         public void SetDeviceLevel(int deviceId, int level)
         {
             var DeviceLevelCommand = string.Format(DeviceSendLevelTempalte, m_token, deviceId, level);
-            var payload = string.Format(RequestUrlEncodeStr, Commands.DeviceSendCommand, Uri.EscapeUriString(DeviceLevelCommand));
+
+            var payload = string.Format(
+                RequestUrlEncodeStr, 
+                Commands.DeviceSendCommand, 
+                Uri.EscapeUriString(DeviceLevelCommand));
 
             GWRequest(payload);
         }
@@ -245,7 +264,11 @@ namespace LightControl
         public void TurnOnRoom(string roomId)
         {
             var RoomCommand = string.Format(RoomSendTemplate, m_token, roomId, 1);
-            var payload = string.Format(RequestUrlEncodeStr, Commands.RoomSendCommand, Uri.EscapeUriString(RoomCommand));
+
+            var payload = string.Format(
+                RequestUrlEncodeStr,
+                Commands.RoomSendCommand, 
+                Uri.EscapeUriString(RoomCommand));
 
             GWRequest(payload);
         }
@@ -284,7 +307,11 @@ namespace LightControl
         public void TurnOffRoom(string roomId)
         {
             var RoomCommand = string.Format(RoomSendTemplate, m_token, roomId, 0);
-            var payload = string.Format(RequestUrlEncodeStr, Commands.RoomSendCommand, Uri.EscapeUriString(RoomCommand));
+
+            var payload = string.Format(
+                RequestUrlEncodeStr, 
+                Commands.RoomSendCommand, 
+                Uri.EscapeUriString(RoomCommand));
 
             GWRequest(payload);
         }
@@ -310,7 +337,11 @@ namespace LightControl
         public void SetRoomLevel(string roomId, int level)
         {
             var RoomLevelCommand = string.Format(RoomSendLevelTemplate, m_token, roomId, level);
-            var payload = string.Format(RequestUrlEncodeStr, Commands.RoomSendCommand, Uri.EscapeUriString(RoomLevelCommand));
+
+            var payload = string.Format(
+                RequestUrlEncodeStr,
+                Commands.RoomSendCommand,
+                Uri.EscapeUriString(RoomLevelCommand));
 
             GWRequest(payload);
         }
@@ -364,7 +395,7 @@ namespace LightControl
                 return "Missing auth token";
             }
 
-            return postGWRXMLDataAsync(Host, payload).Result;
+            return postGWRXMLData(Host, payload);
         }
 
 
@@ -372,7 +403,7 @@ namespace LightControl
         /// Attempts to obtain an access token from the TCPConnected gateway
         /// </summary>
         /// <returns>bool True on success</returns>
-        private async Task<bool> SyncGatewayAsync()
+        private bool SyncGateway()
         {
             var uuid = Guid.NewGuid();
             var user = uuid;
@@ -381,7 +412,7 @@ namespace LightControl
             var gLogInCommand = string.Format(LogInTemplate, user, pass);
             var payload = string.Format(RequestUrlEncodeStr, Commands.GWRLogin, Uri.EscapeUriString(gLogInCommand));
 
-            var resp = await postGWRXMLDataAsync(Host, payload);
+            var resp = postGWRXMLData(Host, payload);
 
             if (resp.Equals(NotInSyncModeStr))
             {
@@ -413,7 +444,7 @@ namespace LightControl
         /// <summary>
         /// Loads auth token from disk, creates file if not found and requests new token
         /// </summary>
-        private async Task<bool> LoadTokenAsync()
+        private bool LoadToken()
         {
             string token = string.Empty;
 
@@ -436,7 +467,7 @@ namespace LightControl
             if (string.IsNullOrEmpty(token))
             {
                 m_logger.Log("No token found, attempting to get token");
-                m_hasToken = await SyncGatewayAsync();
+                m_hasToken = SyncGateway();
             }
             else
             {
@@ -465,25 +496,22 @@ namespace LightControl
         /// <param name="hostIP"></param>
         /// <param name="requestXml"></param>
         /// <returns></returns>
-        private static async Task<string> postGWRXMLDataAsync(string hostIP, string requestXml)
+        private static string postGWRXMLData(string hostIP, string requestXml)
         {
-            return await Task.Factory.StartNew<string>(() =>
-            {
-                var http = new HttpClient();
-                http.Request.Accept = HttpContentTypes.ApplicationXml;
+            var http = new HttpClient();
+            http.Request.Accept = HttpContentTypes.ApplicationXml;
 
-                var url = string.Format("https://{0}/gwr/gop.php", hostIP);
-                m_logger.Log("PostXMLData Req: \n{0}", requestXml);
+            var url = string.Format("https://{0}/gwr/gop.php", hostIP);
+            m_logger.Log("PostXMLData Req: \n{0}", requestXml);
 
 
-                HttpResponse resp = http.Post(url, requestXml, HttpContentTypes.ApplicationXml);
+            HttpResponse resp = http.Post(url, requestXml, HttpContentTypes.ApplicationXml);
 
-                m_logger.Log("PostXMLData Resp: \n{0}", XDocument.Parse(resp.RawText).ToString());
+            m_logger.Log("PostXMLData Resp: \n{0}", XDocument.Parse(resp.RawText).ToString());
 
-                return resp.RawText;
-            });
+            return resp.RawText;
 
-        }           
+        }    
         #endregion
     }
 }

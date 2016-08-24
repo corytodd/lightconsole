@@ -10,13 +10,13 @@ namespace LightConsole
     /// </summary>
     public partial class RoomControl : UserControl, INotifyPropertyChanged
     {
-        public static readonly int MinValue = 0;
-        public static readonly int MaxValue = 100;
+        private static readonly int DIMMER_MIN = 0;
+        private static readonly int DIMMER_MAX = 100;
 
         #region Fields
         private string m_name = string.Empty;
-        private int m_min = MinValue + 10;
-        private int m_max = MaxValue - 10;
+        private int m_min;
+        private int m_max;
         #endregion
 
         /// <summary>
@@ -32,6 +32,20 @@ namespace LightConsole
             m_name = room.name;
             CurrentMinValue = Convert.ToInt32(room.device.level);
             stateToggle.IsChecked = room.device.state.Equals("1");
+
+            MinValue = MinValue + 10;
+        }
+
+        public int MinValue
+        {
+            get { return DIMMER_MIN; }
+            private set { }
+        }
+
+        public int MaxValue
+        {
+            get { return DIMMER_MAX; }
+            private set { }
         }
 
         public int CurrentMinValue
@@ -56,12 +70,12 @@ namespace LightConsole
 
         private void stateToggle_Checked(object sender, System.Windows.RoutedEventArgs e)
         {
-            ModifyLight(new ModifyLightArgs(m_name, CurrentMinValue, stateToggle.IsChecked.Value));
+            ModifyLight(new ModifyLightArgs(m_name, CurrentMinValue, !stateToggle.IsChecked.Value));
         }
 
         private void stateToggle_Unchecked(object sender, System.Windows.RoutedEventArgs e)
         {
-            ModifyLight(new ModifyLightArgs(m_name, CurrentMinValue, stateToggle.IsChecked.Value));
+            ModifyLight(new ModifyLightArgs(m_name, CurrentMinValue, !stateToggle.IsChecked.Value));
         }
 
         protected virtual void ModifyLight(ModifyLightArgs e)
