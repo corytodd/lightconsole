@@ -8,6 +8,7 @@ using System.Xml.Linq;
 using System.Xml;
 using ColorMine.ColorSpaces;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace LightControl
 {
@@ -43,11 +44,17 @@ namespace LightControl
             m_hasToken = false;
             m_token = string.Empty;
             m_rooms = new HashSet<Room>();
+            PollRate = 30;
         }
 
 
         #region Properties
         public string Host { get; private set; }
+
+        /// <summary>
+        /// Poll rate in seconds to query for room updates
+        /// </summary>
+        public int PollRate { get; set; }
         #endregion
 
         #region Events
@@ -92,7 +99,8 @@ namespace LightControl
                         // just try again
                     }
                 }
-                
+
+                UpdateState();
                 return true;
             });
         }
@@ -335,6 +343,20 @@ namespace LightControl
 
 
         #region Private
+        private void UpdateStateTask()
+        {
+            Task.Factory.StartNew(() =>
+            {
+                while(m_hasToken)
+                {
+                    UpdateState();
+
+                    Thread.Sleep(PollRate * 1000);
+                }
+
+            });
+        }
+
         /// <summary>
         /// Updates the current state of all known devices connected to the gateway.
         /// </summary>
@@ -355,6 +377,10 @@ namespace LightControl
             {
                 m_logger.Log("Permission denied: Invalid Token");
                 throw new InvalidToken();
+            }
+            else if(string.IsNullOrEmpty(result))
+            {
+                throw new TCPGatewayUnavailable();
             }
             else
             {
@@ -418,7 +444,7 @@ namespace LightControl
         /// Attempts to obtain an access token from the TCPConnected gateway
         /// </summary>
         /// <returns>bool True on success</returns>
-        /// <exception cref="Exceptions">Thrown if authorization sync fails due to
+        /// <exception cref="NotInSyncModeException">Thrown if authorization sync fails due to
         /// a 404 message from the gateway</exception>
         private bool SyncGateway()
         {
@@ -433,7 +459,11 @@ namespace LightControl
 
             if (resp.Equals(NotInSyncModeStr))
             {
-                throw new Exceptions();
+                throw new NotInSyncModeException();
+            }
+            else if(string.IsNullOrEmpty(resp))
+            {
+                throw new TCPGatewayUnavailable();
             }
             else
             {
@@ -520,12 +550,20 @@ namespace LightControl
             var url = string.Format("https://{0}/gwr/gop.php", hostIP);
             m_logger.Log("PostXMLData Req: \n{0}", requestXml);
 
+            try
+            {
+                HttpResponse resp = http.Post(url, requestXml, HttpContentTypes.ApplicationXml);
+                m_logger.Log("PostXMLData Resp: \n{0}", XDocument.Parse(resp.RawText).ToString());
+                return resp.RawText;
 
-            HttpResponse resp = http.Post(url, requestXml, HttpContentTypes.ApplicationXml);
+            }
+            catch (System.Net.WebException e)
+            {
+                m_logger.Log("Failed to make server request: {0}", e.Message);
+                return "";
+            }
 
-            m_logger.Log("PostXMLData Resp: \n{0}", XDocument.Parse(resp.RawText).ToString());
 
-            return resp.RawText;
 
         }    
         #endregion

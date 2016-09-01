@@ -71,7 +71,12 @@ namespace LightConsole
                 connected = await m_lightClient.InitAsync();
                 statusLbl.Content = string.Format("Connected to {0}", m_gateway);
             }
-            catch (Exceptions e)
+            catch (NotInSyncModeException e)
+            {
+                statusLbl.Content = e.Message;
+                await m_progress.CloseAsync();
+            }
+            catch(TCPGatewayUnavailable e)
             {
                 statusLbl.Content = e.Message;
                 await m_progress.CloseAsync();
@@ -129,7 +134,11 @@ namespace LightConsole
         {
             Topmost = Properties.Settings.Default.OnTop;
 
-            if(!string.IsNullOrEmpty(m_gateway) && !m_gateway.Equals(Properties.Settings.Default.Gateway))
+            if(m_gateway.Equals(Properties.Settings.Default.Gateway)) {
+                return;
+            }
+
+            if(!string.IsNullOrEmpty(Properties.Settings.Default.Gateway))
             {
                 m_gateway = Properties.Settings.Default.Gateway;
                 await InitClientAsync();

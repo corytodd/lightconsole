@@ -7,10 +7,10 @@ namespace LightControl
     /// that can be resovled at runtime in the program. The error itself it non-
     /// terminal but it does require physical action on the user's behalf
     /// </summary>
-    public class Exceptions : Exception
+    public class NotInSyncModeException : Exception
     {
         public static readonly string Error = "Gateway is not Sync Mode. Press sync button on gateway";
-        public Exceptions() : base(Error)
+        public NotInSyncModeException() : base(Error)
         { }
     }
 
@@ -21,6 +21,16 @@ namespace LightControl
     {
         public static readonly string Error = "Gateway response was malformed";
         public MalformedGWR() : base(Error)
+        { }
+    }
+
+    /// <summary>
+    /// Exception that states the target gateway is non-responsive.
+    /// </summary>
+    public class TCPGatewayUnavailable : Exception
+    {
+        public static readonly string Error = "Gateway could not be contacted";
+        public TCPGatewayUnavailable() : base(Error)
         { }
     }
 
