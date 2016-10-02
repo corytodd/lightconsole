@@ -31,8 +31,6 @@ namespace LightConsole
             m_name = room.name;
             CurrentValue = Convert.ToInt32(room.device.level);
             stateToggle.IsChecked = room.device.state.Equals("1");
-
-            MinValue = MinValue + 10;
         }
 
         public int MinValue
@@ -67,6 +65,16 @@ namespace LightConsole
             ModifyLight(new ModifyLightArgs(m_name, CurrentValue, !stateToggle.IsChecked.Value));
         }
 
+
+        private void levelSlider_PreviewMouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            // only update slider if light is on
+            if (stateToggle.IsChecked.Value)
+            {
+                ModifyLight(new ModifyLightArgs(m_name, CurrentValue, !stateToggle.IsChecked.Value));
+            }
+        }
+
         protected virtual void ModifyLight(ModifyLightArgs e)
         {
             EventHandler<ModifyLightArgs> handler = OnModifyRequested;
@@ -86,6 +94,5 @@ namespace LightConsole
             }
         }
         #endregion
-
     }
 }

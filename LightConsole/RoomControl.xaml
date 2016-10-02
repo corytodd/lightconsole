@@ -19,13 +19,15 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-            <RowDefinition Height="1*"/>
+            <RowDefinition Height="60"/>
             <RowDefinition Height="4*"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
         <ToggleButton x:Name="stateToggle" Width="50"
                 Height="50"
+                Checked="stateToggle_Checked"
+                Unchecked="stateToggle_Unchecked"
                 Style="{DynamicResource MetroCircleToggleButtonStyle}" Grid.Row="0">
             <Rectangle Width="20"
                Height="20"
@@ -40,9 +42,10 @@
         <Slider x:Name="levelSlider" Orientation="Vertical" Grid.Row="1"
                 Minimum="{Binding Path=MinValue, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                 Maximum="{Binding Path=MaxValue, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
-                Value="{Binding Path=CurrentMinValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                Value="{Binding Path=CurrentValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                 AutoToolTipPlacement="TopLeft" AutoToolTipPrecision="2"
-                IsSnapToTickEnabled="True" HorizontalAlignment="Center" Margin="0,5">
+                IsSnapToTickEnabled="True" HorizontalAlignment="Center" Margin="0,5" 
+                PreviewMouseUp="levelSlider_PreviewMouseUp" >
         </Slider>
         <Label Content="{Binding ElementName=levelSlider, Path=Value, UpdateSourceTrigger=PropertyChanged}" Grid.Row="2" VerticalAlignment="Center" HorizontalAlignment="Center"/>
     </Grid>
