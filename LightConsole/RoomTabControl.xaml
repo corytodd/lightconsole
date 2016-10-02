@@ -5,9 +5,10 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:LightConsole"
              mc:Ignorable="d" 
-             d:DesignHeight="300" d:DesignWidth="300">
+             d:DesignHeight="400" d:DesignWidth="150">
     <Grid>
-        <TabControl x:Name="tabcontrol" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+        <TabControl x:Name="tabcontrol" HorizontalContentAlignment="Stretch" 
+                    VerticalContentAlignment="Stretch" TabStripPlacement="Right">
         </TabControl>
     </Grid>
 </UserControl>

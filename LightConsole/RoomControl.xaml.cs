@@ -15,8 +15,7 @@ namespace LightConsole
 
         #region Fields
         private string m_name = string.Empty;
-        private int m_min;
-        private int m_max;
+        private int m_value;
         #endregion
 
         /// <summary>
@@ -30,10 +29,8 @@ namespace LightConsole
                        
             DataContext = this;
             m_name = room.name;
-            CurrentMinValue = Convert.ToInt32(room.device.level);
+            CurrentValue = Convert.ToInt32(room.device.level);
             stateToggle.IsChecked = room.device.state.Equals("1");
-
-            MinValue = MinValue + 10;
         }
 
         public int MinValue
@@ -48,34 +45,34 @@ namespace LightConsole
             private set { }
         }
 
-        public int CurrentMinValue
+        public int CurrentValue
         {
-            get { return m_min; }
+            get { return m_value; }
             set
             {
-                m_min = value;
-                NotifyPropertyChanged("CurrentMinValue");
-            }
-        }
-
-        public int CurrentMaxValue
-        {
-            get { return m_max; }
-            set
-            {
-                m_max = value;
-                NotifyPropertyChanged("CurrentMaxValue");
+                m_value = value;
+                NotifyPropertyChanged("CurrentValue");
             }
         }
 
         private void stateToggle_Checked(object sender, System.Windows.RoutedEventArgs e)
         {
-            ModifyLight(new ModifyLightArgs(m_name, CurrentMinValue, !stateToggle.IsChecked.Value));
+            ModifyLight(new ModifyLightArgs(m_name, CurrentValue, !stateToggle.IsChecked.Value));
         }
 
         private void stateToggle_Unchecked(object sender, System.Windows.RoutedEventArgs e)
         {
-            ModifyLight(new ModifyLightArgs(m_name, CurrentMinValue, !stateToggle.IsChecked.Value));
+            ModifyLight(new ModifyLightArgs(m_name, CurrentValue, !stateToggle.IsChecked.Value));
+        }
+
+
+        private void levelSlider_PreviewMouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            // only update slider if light is on
+            if (stateToggle.IsChecked.Value)
+            {
+                ModifyLight(new ModifyLightArgs(m_name, CurrentValue, !stateToggle.IsChecked.Value));
+            }
         }
 
         protected virtual void ModifyLight(ModifyLightArgs e)
@@ -97,6 +94,5 @@ namespace LightConsole
             }
         }
         #endregion
-
     }
 }

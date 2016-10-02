@@ -6,32 +6,47 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:LightConsole"
              mc:Ignorable="d" 
-             d:DesignHeight="300" d:DesignWidth="300">
+             d:DesignHeight="300" d:DesignWidth="75">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Resources/Icons.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-            <RowDefinition Height="3*"/>
+            <RowDefinition Height="60"/>
+            <RowDefinition Height="4*"/>
+            <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <Controls:ToggleSwitch x:Name="stateToggle" Grid.Row="1" OnLabel="On" OffLabel="Off" VerticalAlignment="Center" HorizontalContentAlignment="Center" Checked="stateToggle_Checked" Unchecked="stateToggle_Unchecked" />
+        <ToggleButton x:Name="stateToggle" Width="50"
+                Height="50"
+                Checked="stateToggle_Checked"
+                Unchecked="stateToggle_Unchecked"
+                Style="{DynamicResource MetroCircleToggleButtonStyle}" Grid.Row="0">
+            <Rectangle Width="20"
+               Height="20"
+               Fill="{DynamicResource BlackBrush}">
+                <Rectangle.OpacityMask>
+                    <VisualBrush Stretch="Fill"
+                         Visual="{DynamicResource appbar_lightbulb_coil}"/>
+                </Rectangle.OpacityMask>
+            </Rectangle>
+        </ToggleButton>
 
-        <Grid Grid.Row="1" Grid.Column="1">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="6*"/>
-                <RowDefinition Height="1*"/>
-            </Grid.RowDefinitions>
-            <Controls:RangeSlider x:Name="levelSlider" Orientation="Vertical"
+        <Slider x:Name="levelSlider" Orientation="Vertical" Grid.Row="1"
                 Minimum="{Binding Path=MinValue, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                 Maximum="{Binding Path=MaxValue, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
-                LowerValue="{Binding Path=CurrentMinValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                UpperValue="{Binding Path=CurrentMaxValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                AutoToolTipPlacement="TopLeft" AutoToolTipPrecision="2" MoveWholeRange="True"
-                IsSnapToTickEnabled="True" ExtendedMode="True" Padding="0,5" Margin="0,10,0,0">
-            </Controls:RangeSlider>
-            <Label Content="Dimmer levels" VerticalContentAlignment="Center" Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" HorizontalContentAlignment="Center" ToolTip="Slide dual dimmer level"/>
-        </Grid>
+                Value="{Binding Path=CurrentValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                AutoToolTipPlacement="TopLeft" AutoToolTipPrecision="2"
+                IsSnapToTickEnabled="True" HorizontalAlignment="Center" Margin="0,5" 
+                PreviewMouseUp="levelSlider_PreviewMouseUp" >
+        </Slider>
+        <Label Content="{Binding ElementName=levelSlider, Path=Value, UpdateSourceTrigger=PropertyChanged}" Grid.Row="2" VerticalAlignment="Center" HorizontalAlignment="Center"/>
     </Grid>
 </UserControl>
