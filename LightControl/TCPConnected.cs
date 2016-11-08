@@ -17,23 +17,23 @@ namespace LightControl
     /// TCPConnected gateway client. This handles authentication, device/room discovery,
     /// and lighting controls.
     /// </summary>
-    public partial class TCPConnected
+    public partial class TcpConnected
     {
 
-        private static readonly ILogger m_logger = LoggingFactory.GetLogger();
+        private static readonly ILogger MLogger = LoggingFactory.GetLogger();
 
 
         #region Fields
-        private bool m_hasToken;
-        private string m_token;
-        private HashSet<Room> m_rooms;
+        private bool _mHasToken;
+        private string _mToken;
+        private readonly HashSet<Room> _mRooms;
         #endregion
 
         /// <summary>
         /// Constructoir
         /// </summary>
         /// <param name="host">Resolvable host name or IP address</param>
-        public TCPConnected(string host)
+        public TcpConnected(string host)
         {
             if (string.IsNullOrEmpty(host))
             {
@@ -41,15 +41,15 @@ namespace LightControl
             }
 
             Host = host;
-            m_hasToken = false;
-            m_token = string.Empty;
-            m_rooms = new HashSet<Room>();
+            _mHasToken = false;
+            _mToken = string.Empty;
+            _mRooms = new HashSet<Room>();
             PollRate = 30;
         }
 
 
         #region Properties
-        public string Host { get; private set; }
+        public string Host { get; }
 
         /// <summary>
         /// Poll rate in seconds to query for room updates
@@ -75,7 +75,7 @@ namespace LightControl
         /// </summary>
         public async Task<bool>InitAsync()
         {
-            return await Task.Factory.StartNew<bool>(() =>
+            return await Task.Factory.StartNew(() =>
             {
                 if (!LoadToken())
                 {
@@ -94,7 +94,7 @@ namespace LightControl
                     {
                         LoadToken();
                     }
-                    catch (MalformedGWR)
+                    catch (MalformedGwr)
                     {
                         // just try again
                     }
@@ -111,7 +111,7 @@ namespace LightControl
         /// <returns></returns>
         public IList<Room> GetRooms()
         {
-            return new List<Room>(m_rooms);
+            return new List<Room>(_mRooms);
         }
 
 
@@ -121,13 +121,13 @@ namespace LightControl
         /// <param name="deviceId">Device id string (did)</param>
         public void TurnOnDevice(string deviceId)
         {
-            var DeviceCommand = string.Format(DeviceSendTemplate, m_token, deviceId, 1);
+            var deviceCommand = string.Format(DeviceSendTemplate, _mToken, deviceId, 1);
             var payload = string.Format(
                 RequestUrlEncodeStr, 
                 Commands.DeviceSendCommand, 
-                Uri.EscapeUriString(DeviceCommand));
+                Uri.EscapeUriString(deviceCommand));
 
-            GWRequest(payload);
+            GwRequest(payload);
         }
 
 
@@ -137,14 +137,14 @@ namespace LightControl
         /// <param name="deviceId">Device id string (did)</param>
         public void TurnOffDevice(string deviceId)
         {
-            var DeviceCommand = string.Format(DeviceSendTemplate, m_token, deviceId, 0);
+            var deviceCommand = string.Format(DeviceSendTemplate, _mToken, deviceId, 0);
 
             var payload = string.Format(
                 RequestUrlEncodeStr, 
                 Commands.DeviceSendCommand,
-                Uri.EscapeUriString(DeviceCommand));
+                Uri.EscapeUriString(deviceCommand));
 
-            GWRequest(payload);
+            GwRequest(payload);
         }
 
 
@@ -155,29 +155,29 @@ namespace LightControl
         /// <param name="level">int level between 0 and 100</param>
         public void SetDeviceLevel(int deviceId, int level)
         {
-            var DeviceLevelCommand = string.Format(DeviceSendLevelTempalte, m_token, deviceId, level);
+            var deviceLevelCommand = string.Format(DeviceSendLevelTempalte, _mToken, deviceId, level);
 
             var payload = string.Format(
                 RequestUrlEncodeStr, 
                 Commands.DeviceSendCommand, 
-                Uri.EscapeUriString(DeviceLevelCommand));
+                Uri.EscapeUriString(deviceLevelCommand));
 
-            GWRequest(payload);
+            GwRequest(payload);
         }
 
 
         public int GetRoomHueByName(string name)
         {
-            var room = m_rooms.Where(x => x.name.Equals(name)).First();
+            var room = _mRooms.First(x => x.Name.Equals(name));
 
-            var color = room.color;
+            var color = room.Color;
 
             // Grab the hex representation of red (chars 1-2) and convert to decimal (base 10).
             var r = Convert.ToInt32(color.Substring(0, 2), 16);
             var g = Convert.ToInt32(color.Substring(2, 2), 16);
             var b = Convert.ToInt32(color.Substring(4, 2), 16);
 
-            m_logger.Log("Hue: {0}.{1}.{2}", r, g, b);
+            MLogger.Log("Hue: {0}.{1}.{2}", r, g, b);
 
             var rgb = new Rgb { R = r, G = b, B = b };
             var hsv = rgb.To<Hsv>();
@@ -188,24 +188,24 @@ namespace LightControl
 
         public RoomState GetRoomStateByName(string name)
         {
-            var room = m_rooms.Where(x => x.name.Equals(name)).First();
+            var room = _mRooms.First(x => x.Name.Equals(name));
 
             bool on = false;
             int deviceCount = 0;
             int levelTotal = 0;
 
-            var devices = room.device;
-            if (string.IsNullOrEmpty(room.device.did))
+            var devices = room.Device;
+            if (string.IsNullOrEmpty(room.Device.Did))
             {
                 throw new NotImplementedException("List of devices is not implemented");
             }
             else
             {
                 deviceCount++;
-                if (!devices.state.Equals("0"))
+                if (!devices.State.Equals("0"))
                 {
                     on = true;
-                    levelTotal += Int32.Parse(devices.level);
+                    levelTotal += Int32.Parse(devices.Level);
                 }
             }
 
@@ -224,14 +224,14 @@ namespace LightControl
         /// <param name="roomId">Room id string (rid)</param>
         public void TurnOnRoom(string roomId)
         {
-            var RoomCommand = string.Format(RoomSendTemplate, m_token, roomId, 1);
+            var roomCommand = string.Format(RoomSendTemplate, _mToken, roomId, 1);
 
             var payload = string.Format(
                 RequestUrlEncodeStr,
                 Commands.RoomSendCommand, 
-                Uri.EscapeUriString(RoomCommand));
+                Uri.EscapeUriString(roomCommand));
 
-            GWRequest(payload);
+            GwRequest(payload);
         }
 
 
@@ -241,7 +241,7 @@ namespace LightControl
         /// <param name="name">Room name</param>
         public void TurnOnRoomByName(string name)
         {
-            var roomId = GetRIDByName(name);
+            var roomId = GetRidByName(name);
 
             TurnOnRoom(roomId);
         }
@@ -254,7 +254,7 @@ namespace LightControl
         /// <param name="level">Int level 0 - 100</param>
         public void TurnOnRoomWithLevelByName(string name, int level)
         {
-            var roomId = this.GetRIDByName(name);
+            var roomId = GetRidByName(name);
 
             SetRoomLevel(roomId, level);
             TurnOnRoom(roomId);
@@ -267,14 +267,14 @@ namespace LightControl
         /// <param name="roomId">string room id (rid)</param>
         public void TurnOffRoom(string roomId)
         {
-            var RoomCommand = string.Format(RoomSendTemplate, m_token, roomId, 0);
+            var roomCommand = string.Format(RoomSendTemplate, _mToken, roomId, 0);
 
             var payload = string.Format(
                 RequestUrlEncodeStr, 
                 Commands.RoomSendCommand, 
-                Uri.EscapeUriString(RoomCommand));
+                Uri.EscapeUriString(roomCommand));
 
-            GWRequest(payload);
+            GwRequest(payload);
         }
 
 
@@ -284,7 +284,7 @@ namespace LightControl
         /// <param name="name">string room name</param>
         public void TurnOffRoomByName(string name)
         {
-            var roomId = GetRIDByName(name);
+            var roomId = GetRidByName(name);
 
             TurnOffRoom(roomId);
         }
@@ -297,14 +297,14 @@ namespace LightControl
         /// <param name="level">int level 0 - 100</param>
         public void SetRoomLevel(string roomId, int level)
         {
-            var RoomLevelCommand = string.Format(RoomSendLevelTemplate, m_token, roomId, level);
+            var roomLevelCommand = string.Format(RoomSendLevelTemplate, _mToken, roomId, level);
 
             var payload = string.Format(
                 RequestUrlEncodeStr,
                 Commands.RoomSendCommand,
-                Uri.EscapeUriString(RoomLevelCommand));
+                Uri.EscapeUriString(roomLevelCommand));
 
-            GWRequest(payload);
+            GwRequest(payload);
         }
 
 
@@ -315,7 +315,7 @@ namespace LightControl
         /// <param name="level">int level 0 - 100</param>
         public void SetRoomLevelByName(string name, int level)
         {
-            var roomId = GetRIDByName(name);
+            var roomId = GetRidByName(name);
 
             SetRoomLevel(roomId, level);
         }
@@ -325,29 +325,24 @@ namespace LightControl
         protected virtual void RoomDiscovered(RoomEventArgs e)
         {
             EventHandler<RoomEventArgs> handler = OnRoomDiscovered;
-            if (handler != null)
-            {
-                handler(this, e);
-            }
+            handler?.Invoke(this, e);
         }
 
         protected virtual void RoomStateChanged(RoomEventArgs e)
         {
             EventHandler<RoomEventArgs> handler = OnRoomStateChanged;
-            if (handler != null)
-            {
-                handler(this, e);
-            }
+            handler?.Invoke(this, e);
         }
         #endregion
 
 
         #region Private
+        // ReSharper disable once UnusedMember.Local
         private void UpdateStateTask()
         {
             Task.Factory.StartNew(() =>
             {
-                while(m_hasToken)
+                while(_mHasToken)
                 {
                     UpdateState();
 
@@ -363,24 +358,24 @@ namespace LightControl
         private void UpdateState()
         {
 
-            var StateString = string.Format(GetStateTemplate, m_token);
+            var stateString = string.Format(GetStateTemplate, _mToken);
 
             var payload = string.Format(
                 RequestUrlEncodeStr,
-                Commands.GWRBatch,
-                Uri.EscapeUriString(StateString));
+                Commands.GwrBatch,
+                Uri.EscapeUriString(stateString));
 
 
-            var result = GWRequest(payload);
+            var result = GwRequest(payload);
 
             if (result.Equals(PermissedDeniedStr))
             {
-                m_logger.Log("Permission denied: Invalid Token");
+                MLogger.Log("Permission denied: Invalid Token");
                 throw new InvalidToken();
             }
             else if(string.IsNullOrEmpty(result))
             {
-                throw new TCPGatewayUnavailable();
+                throw new TcpGatewayUnavailable();
             }
             else
             {
@@ -389,24 +384,24 @@ namespace LightControl
                 rawXml.LoadXml(result);
 
                 string json = JsonConvert.SerializeXmlNode(rawXml);
-                GWRObject gwo = JsonConvert.DeserializeObject<GWRObject>(json);
+                GwrObject gwo = JsonConvert.DeserializeObject<GwrObject>(json);
 
-                if (!gwo.hasRooms())
+                if (!gwo.HasRooms())
                 {
-                    m_logger.Log("GWO Response is malformed: {0}", json.ToString());
-                    throw new MalformedGWR();
+                    MLogger.Log("GWO Response is malformed: {0}", json);
+                    throw new MalformedGwr();
                 }
                 else
                 {
-                    var rooms = gwo.gwrcmds.gwrcmd.gdata.gip.room;
+                    var rooms = gwo.Gwrcmds.Gwrcmd.Gdata.Gip.Room;
 
                     // See if these are new rooms or state changes
                     foreach (Room room in rooms)
                     {
-                        m_logger.Log("Found room: {0}", room.name);
+                        MLogger.Log("Found room: {0}", room.Name);
 
-                        var prev = m_rooms.Where(x => x.name.Equals(room.name)).FirstOrDefault();
-                        m_rooms.Add(room);
+                        var prev = _mRooms.FirstOrDefault(x => x.Name.Equals(room.Name));
+                        _mRooms.Add(room);
 
                         // new room
                         if (prev == null)
@@ -428,15 +423,15 @@ namespace LightControl
         /// </summary>
         /// <param name="payload">XML string</param>
         /// <returns>XML response</returns>
-        private string GWRequest(string payload)
+        private string GwRequest(string payload)
         {
-            if (!m_hasToken)
+            if (!_mHasToken)
             {
                 // @todo this really should be an error
                 return "Missing auth token";
             }
 
-            return postGWRXMLData(Host, payload);
+            return PostGwrxmlData(Host, payload);
         }
 
 
@@ -453,9 +448,9 @@ namespace LightControl
             var pass = uuid;
 
             var gLogInCommand = string.Format(LogInTemplate, user, pass);
-            var payload = string.Format(RequestUrlEncodeStr, Commands.GWRLogin, Uri.EscapeUriString(gLogInCommand));
+            var payload = string.Format(RequestUrlEncodeStr, Commands.GwrLogin, Uri.EscapeUriString(gLogInCommand));
 
-            var resp = postGWRXMLData(Host, payload);
+            var resp = PostGwrxmlData(Host, payload);
 
             if (resp.Equals(NotInSyncModeStr))
             {
@@ -463,20 +458,21 @@ namespace LightControl
             }
             else if(string.IsNullOrEmpty(resp))
             {
-                throw new TCPGatewayUnavailable();
+                throw new TcpGatewayUnavailable();
             }
             else
             {
-                XElement xtoken = XElement.Parse(resp).Element("token");
+                var xtoken = XElement.Parse(resp).Element("token");
 
+                if (xtoken == null) return true;
                 var cfg = new Config()
                 {
-                    token = xtoken.Value ?? "Missing token attribute"
+                    Token = xtoken.Value
                 };
 
-                string serialized = JsonConvert.SerializeObject(cfg);
+                var serialized = JsonConvert.SerializeObject(cfg);
 
-                using (StreamWriter sr = new StreamWriter(ConfigPath))
+                using (var sr = new StreamWriter(ConfigPath))
                 {
                     sr.Write(serialized);
                 }
@@ -490,6 +486,7 @@ namespace LightControl
         /// <summary>
         /// Loads auth token from disk, creates file if not found and requests new token
         /// </summary>
+        /// <exception cref="NotInSyncModeException"></exception>
         private bool LoadToken()
         {
             string token = string.Empty;
@@ -504,7 +501,7 @@ namespace LightControl
                     {
 
                         Config cfg = JsonConvert.DeserializeObject<Config>(json);
-                        token = cfg.token;
+                        token = cfg.Token;
                     }
                 }
 
@@ -512,16 +509,16 @@ namespace LightControl
 
             if (string.IsNullOrEmpty(token))
             {
-                m_logger.Log("No token found, attempting to get token");
-                m_hasToken = SyncGateway();
+                MLogger.Log("No token found, attempting to get token");
+                _mHasToken = SyncGateway();
             }
             else
             {
-                m_hasToken = true;
-                m_token = token;
+                _mHasToken = true;
+                _mToken = token;
             }
 
-            return m_hasToken;
+            return _mHasToken;
         }
 
         /// <summary>
@@ -530,36 +527,36 @@ namespace LightControl
         /// </summary>
         /// <param name="name">String name of room</param>
         /// <returns>string room id</returns>
-        private string GetRIDByName(string name)
+        private string GetRidByName(string name)
         {
-            var room = m_rooms.Where(x => x.name.Equals(name)).First();
-            return room.rid;
+            var room = _mRooms.First(x => x.Name.Equals(name));
+            return room.Rid;
         }
 
         /// <summary>
         /// Posts XML data to the TCPConnected GWR path
         /// </summary>
-        /// <param name="hostIP"></param>
+        /// <param name="hostIp"></param>
         /// <param name="requestXml"></param>
         /// <returns></returns>
-        private static string postGWRXMLData(string hostIP, string requestXml)
+        private static string PostGwrxmlData(string hostIp, string requestXml)
         {
             var http = new HttpClient();
             http.Request.Accept = HttpContentTypes.ApplicationXml;
 
-            var url = string.Format("https://{0}/gwr/gop.php", hostIP);
-            m_logger.Log("PostXMLData Req: \n{0}", requestXml);
+            var url = $"https://{hostIp}/gwr/gop.php";
+            MLogger.Log("PostXMLData Req: \n{0}", requestXml);
 
             try
             {
                 HttpResponse resp = http.Post(url, requestXml, HttpContentTypes.ApplicationXml);
-                m_logger.Log("PostXMLData Resp: \n{0}", XDocument.Parse(resp.RawText).ToString());
+                MLogger.Log("PostXMLData Resp: \n{0}", XDocument.Parse(resp.RawText).ToString());
                 return resp.RawText;
 
             }
             catch (System.Net.WebException e)
             {
-                m_logger.Log("Failed to make server request: {0}", e.Message);
+                MLogger.Log("Failed to make server request: {0}", e.Message);
                 return "";
             }
 

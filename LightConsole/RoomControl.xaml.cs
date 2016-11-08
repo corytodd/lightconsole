@@ -1,21 +1,20 @@
 ﻿using LightControl;
 using System;
 using System.ComponentModel;
-using System.Windows.Controls;
 
 namespace LightConsole
 {
     /// <summary>
     /// Interaction logic for RoomControl.xaml
     /// </summary>
-    public partial class RoomControl : UserControl, INotifyPropertyChanged
+    public partial class RoomControl : INotifyPropertyChanged
     {
-        private static readonly int DIMMER_MIN = 0;
-        private static readonly int DIMMER_MAX = 100;
+        private const int DimmerMin = 0;
+        private const int DimmerMax = 100;
 
         #region Fields
-        private string m_name = string.Empty;
-        private int m_value;
+        private readonly string _mName;
+        private int _mValue;
         #endregion
 
         /// <summary>
@@ -28,70 +27,56 @@ namespace LightConsole
             InitializeComponent();
                        
             DataContext = this;
-            m_name = room.name;
-            CurrentValue = Convert.ToInt32(room.device.level);
-            stateToggle.IsChecked = room.device.state.Equals("1");
+            _mName = room.Name;
+            CurrentValue = Convert.ToInt32(room.Device.Level);
+            stateToggle.IsChecked = room.Device.State.Equals("1");
         }
 
-        public int MinValue
-        {
-            get { return DIMMER_MIN; }
-            private set { }
-        }
+        public int MinValue => DimmerMin;
 
-        public int MaxValue
-        {
-            get { return DIMMER_MAX; }
-            private set { }
-        }
+        public int MaxValue => DimmerMax;
 
         public int CurrentValue
         {
-            get { return m_value; }
+            get { return _mValue; }
             set
             {
-                m_value = value;
+                _mValue = value;
                 NotifyPropertyChanged("CurrentValue");
             }
         }
 
         private void stateToggle_Checked(object sender, System.Windows.RoutedEventArgs e)
         {
-            ModifyLight(new ModifyLightArgs(m_name, CurrentValue, !stateToggle.IsChecked.Value));
+            ModifyLight(new ModifyLightArgs(_mName, CurrentValue, stateToggle.IsChecked != null && !stateToggle.IsChecked.Value));
         }
 
         private void stateToggle_Unchecked(object sender, System.Windows.RoutedEventArgs e)
         {
-            ModifyLight(new ModifyLightArgs(m_name, CurrentValue, !stateToggle.IsChecked.Value));
+            ModifyLight(new ModifyLightArgs(_mName, CurrentValue, stateToggle.IsChecked != null && !stateToggle.IsChecked.Value));
         }
 
 
         private void levelSlider_PreviewMouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             // only update slider if light is on
-            if (stateToggle.IsChecked.Value)
+            if (stateToggle.IsChecked != null && stateToggle.IsChecked.Value)
             {
-                ModifyLight(new ModifyLightArgs(m_name, CurrentValue, !stateToggle.IsChecked.Value));
+                ModifyLight(new ModifyLightArgs(_mName, CurrentValue, !stateToggle.IsChecked.Value));
             }
         }
 
         protected virtual void ModifyLight(ModifyLightArgs e)
         {
-            EventHandler<ModifyLightArgs> handler = OnModifyRequested;
-            if (handler != null)
-            {
-                handler(this, e);
-            }
+            var handler = OnModifyRequested;
+            handler?.Invoke(this, e);
         }
 
         #region INotifyPropertyChanged Members
         public event PropertyChangedEventHandler PropertyChanged;
         private void NotifyPropertyChanged(string propertyName)
         {
-            if (PropertyChanged != null)
-            {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-            }
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
         #endregion
     }

@@ -7,58 +7,58 @@ namespace LightControl
     /// </summary>
     public class Other
     {
-        public string rcgroup { get; set; }
-        public string manufacturer { get; set; }
-        public string capability { get; set; }
-        public string bulbpower { get; set; }
+        public string Rcgroup { get; set; }
+        public string Manufacturer { get; set; }
+        public string Capability { get; set; }
+        public string Bulbpower { get; set; }
     }
 
     public class Device
     {
-        public string did { get; set; }
-        public string known { get; set; }
-        public string @lock { get; set; }
-        public string state { get; set; }
-        public string level { get; set; }
-        public string node { get; set; }
-        public string port { get; set; }
-        public string nodetype { get; set; }
-        public string name { get; set; }
-        public string desc { get; set; }
-        public string colorid { get; set; }
-        public string type { get; set; }
-        public string rangemin { get; set; }
-        public string rangemax { get; set; }
-        public string power { get; set; }
-        public string poweravg { get; set; }
-        public string energy { get; set; }
-        public string score { get; set; }
-        public string productid { get; set; }
-        public string prodbrand { get; set; }
-        public string prodmodel { get; set; }
-        public string prodtype { get; set; }
-        public string prodtypeid { get; set; }
-        public string classid { get; set; }
-        public string @class { get; set; }
-        public string subclassid { get; set; }
-        public string subclass { get; set; }
-        public Other other { get; set; }
+        public string Did { get; set; }
+        public string Known { get; set; }
+        public string Lock { get; set; }
+        public string State { get; set; }
+        public string Level { get; set; }
+        public string Node { get; set; }
+        public string Port { get; set; }
+        public string Nodetype { get; set; }
+        public string Name { get; set; }
+        public string Desc { get; set; }
+        public string Colorid { get; set; }
+        public string Type { get; set; }
+        public string Rangemin { get; set; }
+        public string Rangemax { get; set; }
+        public string Power { get; set; }
+        public string Poweravg { get; set; }
+        public string Energy { get; set; }
+        public string Score { get; set; }
+        public string Productid { get; set; }
+        public string Prodbrand { get; set; }
+        public string Prodmodel { get; set; }
+        public string Prodtype { get; set; }
+        public string Prodtypeid { get; set; }
+        public string Classid { get; set; }
+        public string Class { get; set; }
+        public string Subclassid { get; set; }
+        public string Subclass { get; set; }
+        public Other Other { get; set; }
     }
 
     public class Room
     {
-        public string rid { get; set; }
-        public string name { get; set; }
-        public string desc { get; set; }
-        public string known { get; set; }
-        public string type { get; set; }
-        public string color { get; set; }
-        public string colorid { get; set; }
-        public string img { get; set; }
-        public string power { get; set; }
-        public string poweravg { get; set; }
-        public string energy { get; set; }
-        public Device device { get; set; }
+        public string Rid { get; set; }
+        public string Name { get; set; }
+        public string Desc { get; set; }
+        public string Known { get; set; }
+        public string Type { get; set; }
+        public string Color { get; set; }
+        public string Colorid { get; set; }
+        public string Img { get; set; }
+        public string Power { get; set; }
+        public string Poweravg { get; set; }
+        public string Energy { get; set; }
+        public Device Device { get; set; }
 
         /// <summary>
         /// Objects are equal only if rid and name are the same
@@ -70,8 +70,8 @@ namespace LightControl
             if (obj == null || GetType() != obj.GetType())
                 return false;
 
-            Room p = (Room)obj;
-            return (rid == p.rid) && (name.Equals(p.name));
+            var p = (Room)obj;
+            return (Rid == p.Rid) && (Name.Equals(p.Name));
         }
 
         /// <summary>
@@ -86,47 +86,40 @@ namespace LightControl
 
     public class Gip
     {
-        public string version { get; set; }
-        public string rc { get; set; }
-        public List<Room> room { get; set; }
+        public string Version { get; set; }
+        public string Rc { get; set; }
+        public List<Room> Room { get; set; }
     }
 
     public class Gdata
     {
-        public Gip gip { get; set; }
+        public Gip Gip { get; set; }
     }
 
     public class Gwrcmd
     {
-        public string gcmd { get; set; }
-        public Gdata gdata { get; set; }
+        public string Gcmd { get; set; }
+        public Gdata Gdata { get; set; }
     }
 
     public class Gwrcmds
     {
-        public Gwrcmd gwrcmd { get; set; }
+        public Gwrcmd Gwrcmd { get; set; }
     }
 
-    public class GWRObject
+    public class GwrObject
     {
-        public Gwrcmds gwrcmds { get; set; }
+        public Gwrcmds Gwrcmds { get; set; }
 
         /// <summary>
         /// Returns true if the rooms record is intact
         /// </summary>
         /// <returns></returns>
-        public bool hasRooms()
+        public bool HasRooms()
         {
-            // Ask for fogiveness, not permission
-            try
-            {
-                var count = gwrcmds.gwrcmd.gdata.gip.room.Count;
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
+
+            var count = Gwrcmds?.Gwrcmd?.Gdata?.Gip?.Room?.Count;
+            return count > 0;
         }
     }
 }

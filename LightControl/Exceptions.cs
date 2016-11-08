@@ -17,20 +17,20 @@ namespace LightControl
     /// <summary>
     /// Internal exception that states the communication should be attempted again
     /// </summary>
-    class MalformedGWR : Exception
+    class MalformedGwr : Exception
     {
         public static readonly string Error = "Gateway response was malformed";
-        public MalformedGWR() : base(Error)
+        public MalformedGwr() : base(Error)
         { }
     }
 
     /// <summary>
     /// Exception that states the target gateway is non-responsive.
     /// </summary>
-    public class TCPGatewayUnavailable : Exception
+    public class TcpGatewayUnavailable : Exception
     {
         public static readonly string Error = "Gateway could not be contacted";
-        public TCPGatewayUnavailable() : base(Error)
+        public TcpGatewayUnavailable() : base(Error)
         { }
     }
 

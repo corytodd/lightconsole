@@ -6,24 +6,26 @@ namespace LightConsole
     /// <summary>
     /// Interaction logic for RoomTabControl.xaml
     /// </summary>
-    public partial class RoomTabControl : UserControl
+    public partial class RoomTabControl
     {
-        private List<TabItem> m_controls;
+        private readonly List<TabItem> _mControls;
 
         public RoomTabControl()
         {
             InitializeComponent();
 
-            m_controls = new List<TabItem>();
+            _mControls = new List<TabItem>();
         }
 
         public void AddControl(UserControl control, string name)
         {
-            TabItem item = new TabItem();
-            item.Content = control;
-            item.Header = name;
+            TabItem item = new TabItem
+            {
+                Content = control,
+                Header = name
+            };
 
-            m_controls.Add(item);
+            _mControls.Add(item);
             tabcontrol.Items.Add(item);
         }
     }

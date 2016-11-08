@@ -1,12 +1,11 @@
-﻿using MahApps.Metro.SimpleChildWindow;
-using System;
+﻿using System;
 
 namespace LightConsole
 {
     /// <summary>
     /// Interaction logic for SettingChildWindow.xaml
     /// </summary>
-    public partial class SettingChildWindow : ChildWindow
+    public partial class SettingChildWindow
     {
         public SettingChildWindow()
         {
@@ -21,10 +20,7 @@ namespace LightConsole
         protected void SettingsChanged()
         {
             EventHandler<EventArgs> handler = OnSettingsChanged;
-            if(handler != null)
-            {
-                handler(this, EventArgs.Empty);
-            }
+            handler?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>
@@ -45,8 +41,9 @@ namespace LightConsole
         private void settingsSaveBtn_Click(object sender, System.Windows.RoutedEventArgs e)
         {
             // TODO validate
-            Properties.Settings.Default.Gateway = settingGatewayTxt.Text.ToString();
-            Properties.Settings.Default.OnTop = settingsOnTopToggle.IsChecked.Value;
+            Properties.Settings.Default.Gateway = settingGatewayTxt.Text;
+            if (settingsOnTopToggle.IsChecked != null)
+                Properties.Settings.Default.OnTop = settingsOnTopToggle.IsChecked.Value;
 
             SettingsChanged();
 

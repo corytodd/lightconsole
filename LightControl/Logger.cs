@@ -3,19 +3,19 @@ using log4net.Config;
 
 namespace LightControl
 {
-    public class Log4netAdapter : ILogger
+    public class Log4NetAdapter : ILogger
     {
-        private readonly ILog m_log;
+        private readonly ILog _mLog;
 
-        public Log4netAdapter()
+        public Log4NetAdapter()
         {
             XmlConfigurator.Configure();
-            m_log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+            _mLog = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         }
 
         public void Log(string message, params object[] args)
         {
-            m_log.Info(string.Format(message, args));
+            _mLog.Info(string.Format(message, args));
         }
     }
 }

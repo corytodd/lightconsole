@@ -3,7 +3,7 @@ using System.IO;
 
 namespace LightControl
 {
-    partial class TCPConnected
+    partial class TcpConnected
     {
         static readonly string RequestUrlEncodeStr = "cmd={0}&data={1}&fmt=xml";
         static readonly string GetStateTemplate = "<gwrcmds><gwrcmd><gcmd>RoomGetCarousel</gcmd><gdata><gip><version>1</version><token>{0}" +

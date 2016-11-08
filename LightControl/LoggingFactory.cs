@@ -2,7 +2,7 @@
 {
     public class LoggingFactory
     {
-        private static ILogger m_logger;
+        private static ILogger _mLogger;
 
         /// <summary>
         /// @todo this logging doesn't feel right. We should lean on the 
@@ -10,9 +10,9 @@
         /// </summary>
         public static void InitializeLogFactory()
         {
-            m_logger = new Log4netAdapter();
+            _mLogger = new Log4NetAdapter();
         }
 
-        public static ILogger GetLogger() { return m_logger; }
+        public static ILogger GetLogger() { return _mLogger; }
     }
 }

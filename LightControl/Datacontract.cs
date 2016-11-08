@@ -1,6 +1,6 @@
 ﻿namespace LightControl
 {
-    public partial class TCPConnected
+    public partial class TcpConnected
     {
         /// <summary>
         /// TCPConnected authorization config
@@ -10,7 +10,7 @@
             /// <summary>
             /// Authorization token
             /// </summary>
-            public string token { get; set; }
+            public string Token { get; set; }
         }
 
         /// <summary>

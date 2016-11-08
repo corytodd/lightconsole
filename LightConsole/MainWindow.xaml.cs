@@ -1,5 +1,4 @@
 ﻿using LightControl;
-using MahApps.Metro.Controls;
 using MahApps.Metro.Controls.Dialogs;
 using System;
 using System.Threading.Tasks;
@@ -10,11 +9,11 @@ namespace LightConsole
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : MetroWindow
+    public partial class MainWindow
     {
-        private TCPConnected m_lightClient;
-        private ProgressDialogController m_progress;
-        private string m_gateway;
+        private TcpConnected _mLightClient;
+        private ProgressDialogController _mProgress;
+        private string _mGateway;
 
         public MainWindow()
         {
@@ -22,14 +21,14 @@ namespace LightConsole
 
             settingsChild.OnSettingsChanged += SettingsChild_OnSettingsChanged;
 
-            m_gateway = Properties.Settings.Default.Gateway;
+            _mGateway = Properties.Settings.Default.Gateway;
 
             LoggingFactory.InitializeLogFactory();            
         }
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            if (!string.IsNullOrEmpty(m_gateway))
+            if (!string.IsNullOrEmpty(_mGateway))
             {
                 await InitClientAsync();
             }
@@ -49,37 +48,35 @@ namespace LightConsole
         /// <returns>bool success</returns>
         private async Task<bool> InitClientAsync()
         {
-            m_progress = await DialogManager.ShowProgressAsync(
-                this,
-                "Loading...",
+            _mProgress = await this.ShowProgressAsync("Loading...",
                 "Please Wait...");
-            m_progress.SetIndeterminate();
+            _mProgress.SetIndeterminate();
 
-            if (m_lightClient != null)
+            if (_mLightClient != null)
             {
-                m_lightClient.OnRoomDiscovered -= M_lightClient_OnRoomDiscovered;
-                m_lightClient.OnRoomStateChanged -= M_lightClient_OnRoomStateChanged;
+                _mLightClient.OnRoomDiscovered -= M_lightClient_OnRoomDiscovered;
+                _mLightClient.OnRoomStateChanged -= M_lightClient_OnRoomStateChanged;
             }
 
-                m_lightClient = new TCPConnected(m_gateway);
-                m_lightClient.OnRoomDiscovered += M_lightClient_OnRoomDiscovered;
-                m_lightClient.OnRoomStateChanged += M_lightClient_OnRoomStateChanged;
+                _mLightClient = new TcpConnected(_mGateway);
+                _mLightClient.OnRoomDiscovered += M_lightClient_OnRoomDiscovered;
+                _mLightClient.OnRoomStateChanged += M_lightClient_OnRoomStateChanged;
 
             bool connected = false;
             try
             {
-                connected = await m_lightClient.InitAsync();
-                statusLbl.Content = string.Format("Connected to {0}", m_gateway);
+                connected = await _mLightClient.InitAsync();
+                statusLbl.Content = $"Connected to {_mGateway}";
             }
             catch (NotInSyncModeException e)
             {
                 statusLbl.Content = e.Message;
-                await m_progress.CloseAsync();
+                await _mProgress.CloseAsync();
             }
-            catch(TCPGatewayUnavailable e)
+            catch(TcpGatewayUnavailable e)
             {
                 statusLbl.Content = e.Message;
-                await m_progress.CloseAsync();
+                await _mProgress.CloseAsync();
             }
 
 
@@ -94,15 +91,15 @@ namespace LightConsole
 
         private void M_lightClient_OnRoomDiscovered(object sender, RoomEventArgs e)
         {
-            DoOnUIThread(() =>
+            DoOnUiThread(() =>
             {
                 RoomControl control = new RoomControl(e.Room);
                 control.OnModifyRequested += Control_OnModifyRequested;
-                roomTabs.AddControl(control, e.Room.name);
+                roomTabs.AddControl(control, e.Room.Name);
 
             });
 
-            m_progress.CloseAsync();
+            _mProgress.CloseAsync();
         }
 
         /// <summary>
@@ -116,11 +113,11 @@ namespace LightConsole
                 {
                     if (e.On)
                     {
-                        m_lightClient.TurnOffRoomByName(e.Name);
+                        _mLightClient.TurnOffRoomByName(e.Name);
                     }
                     else
                     {
-                        m_lightClient.TurnOnRoomWithLevelByName(e.Name, e.Level);
+                        _mLightClient.TurnOnRoomWithLevelByName(e.Name, e.Level);
                     }
                 });
         }
@@ -134,13 +131,13 @@ namespace LightConsole
         {
             Topmost = Properties.Settings.Default.OnTop;
 
-            if(m_gateway.Equals(Properties.Settings.Default.Gateway)) {
+            if(_mGateway.Equals(Properties.Settings.Default.Gateway)) {
                 return;
             }
 
             if(!string.IsNullOrEmpty(Properties.Settings.Default.Gateway))
             {
-                m_gateway = Properties.Settings.Default.Gateway;
+                _mGateway = Properties.Settings.Default.Gateway;
                 await InitClientAsync();
             } 
 
@@ -177,7 +174,7 @@ namespace LightConsole
         /// to mark your delegates as async before passing them to this function.
         /// </summary>
         /// <param name="action"></param>
-        private void DoOnUIThread(Action action)
+        private void DoOnUiThread(Action action)
         {
             if (!Dispatcher.CheckAccess())
             {
