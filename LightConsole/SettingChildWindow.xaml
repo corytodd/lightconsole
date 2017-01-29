@@ -20,6 +20,10 @@
             <RowDefinition Height="1*"/>
             <RowDefinition Height="1*"/>
             <RowDefinition Height="1*"/>
+            
+            <RowDefinition Height="1*"/>
+            <RowDefinition Height="1*"/>
+            <RowDefinition Height="1*"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="1*"/>
@@ -29,6 +33,17 @@
         <TextBox x:Name="settingGatewayTxt" Text="{Binding Source={x:Static p:Settings.Default}, Path=Gateway}" Controls:TextBoxHelper.Watermark="IP address" Grid.Column="1" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Center" HorizontalContentAlignment="Center"/>
         <Label Content="Always on top" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Grid.Row="1"/>
         <Controls:ToggleSwitch x:Name="settingsOnTopToggle" Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" HorizontalContentAlignment="Center" IsChecked="{Binding Source={x:Static p:Settings.Default}, Path=OnTop}" OnLabel="" OffLabel="" HorizontalAlignment="Center" />
+
+        <Label Content="Project ID" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"></Label>
+        <TextBox x:Name="projectIdtxt" Text="{Binding Source={x:Static p:Settings.Default}, Path=ProjectID}" Controls:TextBoxHelper.Watermark="appname-XXXXX" Grid.Column="1" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Center" HorizontalContentAlignment="Center"/>
+
+        <Label Content="Topic Name" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"></Label>
+        <TextBox x:Name="topicNameTxt" Text="{Binding Source={x:Static p:Settings.Default}, Path=TopicID}" Controls:TextBoxHelper.Watermark="some-topic-name" Grid.Column="1" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Center" HorizontalContentAlignment="Center"/>
+
+        <Label Content="Subscription Id" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"></Label>
+        <TextBox x:Name="subcriptionIdtxt" Text="{Binding Source={x:Static p:Settings.Default}, Path=SubscriptionID}" Controls:TextBoxHelper.Watermark="wtfisthis" Grid.Column="1" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Center" HorizontalContentAlignment="Center"/>
+
+
         <Button x:Name="settingsSaveBtn" Content="Save" Click="settingsSaveBtn_Click" IsDefault="True" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center" Width="75"/>
         <Button x:Name="settingsCancelBtn" Content="Cancel" Click="settingsCancelBtn_Click" IsCancel="True" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" Width="75"/>
     </Grid>

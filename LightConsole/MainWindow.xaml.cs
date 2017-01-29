@@ -15,6 +15,7 @@ namespace LightConsole
         private TCPConnected m_lightClient;
         private ProgressDialogController m_progress;
         private string m_gateway;
+        private GHLightsClient m_ghClient;
 
         public MainWindow()
         {
@@ -24,7 +25,19 @@ namespace LightConsole
 
             m_gateway = Properties.Settings.Default.Gateway;
 
-            LoggingFactory.InitializeLogFactory();            
+            LoggingFactory.InitializeLogFactory();
+
+            // Fire up the GH listener
+            m_ghClient = new GHLightsClient(
+                Properties.Settings.Default.ProjectID,
+                Properties.Settings.Default.SubscriptionID,
+                Properties.Settings.Default.TopicID);
+            m_ghClient.OnGHLightsEvent += M_ghClient_OnGHLightsEvent;
+        }
+
+        private void M_ghClient_OnGHLightsEvent(object sender, GHEventArgs e)
+        {
+            Control_OnModifyRequested(this, new ModifyLightArgs("Office", e.Level, e.Mode == OnMode.Off));
         }
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)

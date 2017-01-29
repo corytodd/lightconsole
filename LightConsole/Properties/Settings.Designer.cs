@@ -46,5 +46,41 @@ namespace LightConsole.Properties {
                 this["OnTop"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("yourid")]
+        public string ProjectID {
+            get {
+                return ((string)(this["ProjectID"]));
+            }
+            set {
+                this["ProjectID"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("gh-light-event")]
+        public string TopicID {
+            get {
+                return ((string)(this["TopicID"]));
+            }
+            set {
+                this["TopicID"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("whatisasubcriptionid")]
+        public string SubscriptionID {
+            get {
+                return ((string)(this["SubscriptionID"]));
+            }
+            set {
+                this["SubscriptionID"] = value;
+            }
+        }
     }
 }

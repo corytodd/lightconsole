@@ -8,5 +8,14 @@
     <Setting Name="OnTop" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
+    <Setting Name="ProjectID" Type="System.String" Scope="User">
+      <Value Profile="(Default)">yourid</Value>
+    </Setting>
+    <Setting Name="TopicID" Type="System.String" Scope="User">
+      <Value Profile="(Default)">gh-light-event</Value>
+    </Setting>
+    <Setting Name="SubscriptionID" Type="System.String" Scope="User">
+      <Value Profile="(Default)">whatisasubcriptionid</Value>
+    </Setting>
   </Settings>
 </SettingsFile>
